@@ -1,0 +1,73 @@
+{
+  "common": {
+    "appName": "SahuliatAI",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "back": "Back",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm"
+  },
+  "landing": {
+    "hero": "What service do you need?",
+    "subtitle": "AI-powered service booking for the informal economy.",
+    "tryThis": "Try: \"Mujhe AC technician chahiye\"",
+    "listBusiness": "List your business",
+    "demoMode": "Demo mode"
+  },
+  "auth": {
+    "signin": "Sign in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "createAccount": "Create account",
+    "checkEmail": "Check your email to verify your account.",
+    "resetPassword": "Reset password",
+    "newPassword": "New password",
+    "currentPassword": "Current password",
+    "changePassword": "Change password"
+  },
+  "onboarding": {
+    "welcome": "Welcome — let's add your first location",
+    "subtitle": "We use this to find providers nearby.",
+    "label": "Label (Home / Work / Other)",
+    "address": "Address",
+    "dropPin": "Drop a pin on the map",
+    "addAnother": "Add another location",
+    "continue": "Continue to chat"
+  },
+  "chat": {
+    "placeholder": "Describe what you need…",
+    "send": "Send",
+    "from": "From",
+    "switchLocation": "Switch location",
+    "addLocation": "+ Add location"
+  },
+  "booking": {
+    "invitationSent": "Invitation sent",
+    "awaitingAcceptance": "Awaiting provider acceptance",
+    "via": "via",
+    "expiresIn": "Expires in",
+    "confirmed": "Confirmed!",
+    "addToCalendar": "Add to Calendar",
+    "downloadReceipt": "Download receipt",
+    "cancel": "Cancel request"
+  },
+  "rating": {
+    "title": "How was your service?",
+    "comment": "Tell us more (optional)",
+    "submit": "Submit"
+  },
+  "provider": {
+    "dashboard": "Dashboard",
+    "invitations": "Invitations",
+    "accept": "Accept",
+    "reject": "Reject",
+    "reschedule": "Reschedule"
+  }
+}

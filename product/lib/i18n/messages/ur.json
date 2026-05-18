@@ -1,0 +1,73 @@
+{
+  "common": {
+    "appName": "سہولت اے آئی",
+    "loading": "لوڈ ہو رہا ہے…",
+    "save": "محفوظ کریں",
+    "cancel": "منسوخ کریں",
+    "continue": "جاری رکھیں",
+    "back": "واپس",
+    "delete": "حذف کریں",
+    "edit": "ترمیم",
+    "confirm": "تصدیق کریں"
+  },
+  "landing": {
+    "hero": "آپ کو کیا چاہیے؟",
+    "subtitle": "غیر رسمی معیشت کے لیے AI سے چلنے والی سروس بکنگ۔",
+    "tryThis": "آزمائیں: \"مجھے اے سی ٹیکنیشن چاہیے\"",
+    "listBusiness": "اپنا کاروبار رجسٹر کریں",
+    "demoMode": "ڈیمو موڈ"
+  },
+  "auth": {
+    "signin": "سائن ان",
+    "signup": "اکاؤنٹ بنائیں",
+    "email": "ای میل",
+    "password": "پاس ورڈ",
+    "forgotPassword": "پاس ورڈ بھول گئے؟",
+    "noAccount": "اکاؤنٹ نہیں ہے؟",
+    "hasAccount": "پہلے سے اکاؤنٹ ہے؟",
+    "createAccount": "اکاؤنٹ بنائیں",
+    "checkEmail": "اپنی ای میل چیک کریں تاکہ اکاؤنٹ کی تصدیق ہو سکے۔",
+    "resetPassword": "پاس ورڈ ری سیٹ کریں",
+    "newPassword": "نیا پاس ورڈ",
+    "currentPassword": "موجودہ پاس ورڈ",
+    "changePassword": "پاس ورڈ تبدیل کریں"
+  },
+  "onboarding": {
+    "welcome": "خوش آمدید — اپنا پہلا مقام شامل کریں",
+    "subtitle": "ہم اسے قریبی فراہم کنندگان تلاش کرنے کے لیے استعمال کرتے ہیں۔",
+    "label": "لیبل (گھر / کام / دیگر)",
+    "address": "پتہ",
+    "dropPin": "نقشے پر پن رکھیں",
+    "addAnother": "ایک اور مقام شامل کریں",
+    "continue": "چیٹ جاری رکھیں"
+  },
+  "chat": {
+    "placeholder": "بتائیں آپ کو کیا چاہیے…",
+    "send": "بھیجیں",
+    "from": "سے",
+    "switchLocation": "مقام تبدیل کریں",
+    "addLocation": "+ نیا مقام"
+  },
+  "booking": {
+    "invitationSent": "دعوت بھیج دی گئی",
+    "awaitingAcceptance": "فراہم کنندہ کی قبولیت کا انتظار",
+    "via": "بذریعہ",
+    "expiresIn": "ختم ہوگی",
+    "confirmed": "تصدیق شدہ!",
+    "addToCalendar": "کیلنڈر میں شامل کریں",
+    "downloadReceipt": "رسید ڈاؤن لوڈ کریں",
+    "cancel": "درخواست منسوخ کریں"
+  },
+  "rating": {
+    "title": "خدمت کیسی تھی؟",
+    "comment": "مزید بتائیں (اختیاری)",
+    "submit": "جمع کرائیں"
+  },
+  "provider": {
+    "dashboard": "ڈیش بورڈ",
+    "invitations": "دعوتیں",
+    "accept": "قبول کریں",
+    "reject": "مسترد کریں",
+    "reschedule": "وقت تبدیل کریں"
+  }
+}
