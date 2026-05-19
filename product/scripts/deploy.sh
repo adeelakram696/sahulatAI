@@ -43,12 +43,19 @@ else
 fi
 
 if [ ! -f "$ENV_FILE" ]; then
-  if [ -f .env.local ]; then
-    echo "!! $ENV_FILE not found; falling back to .env.local"
-    echo "   (Recommended: create $ENV_FILE so prod and local are isolated.)"
-    ENV_FILE=".env.local"
-  else
-    echo "!! No env file found. Create $ENV_FILE (or .env.local) first."
+  # Fallback order: prefer .env.local for owner workflow, then .env.prod so a
+  # teammate who only has the shared production env file can still deploy.
+  for candidate in .env.local .env.prod; do
+    if [ -f "$candidate" ]; then
+      echo "!! $ENV_FILE not found; falling back to $candidate"
+      [ "$candidate" = ".env.prod" ] && [ "$TARGET" = "preview" ] && \
+        echo "   ⚠ Using PROD keys for a PREVIEW deploy — URLs/secrets may not be sandboxed."
+      ENV_FILE="$candidate"
+      break
+    fi
+  done
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "!! No env file found. Create one of: .env.${TARGET}, .env.local, .env.prod"
     exit 1
   fi
 fi
@@ -98,23 +105,55 @@ if [ "$RESTORE_LOCAL" = "1" ] && [ -f .env.local.deploybak ]; then
 fi
 
 # ---------- 5. DB migrations ----------
-echo "-> Pushing DB migrations to Supabase ..."
-if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && [ ! -f "$HOME/.supabase/access-token" ]; then
-  echo "   Supabase CLI is not authenticated."
-  echo "   Run: pnpm exec supabase login   (or set SUPABASE_ACCESS_TOKEN in $ENV_FILE)"
-  exit 1
+# Two ways:
+#   - Owner / DB-admin teammates: have Supabase CLI auth (login or SUPABASE_ACCESS_TOKEN).
+#   - Other teammates: set SKIP_DB_PUSH=1 to deploy app changes only.
+#     The owner is responsible for pushing migrations beforehand. The app will
+#     surface schema-mismatch errors at runtime; run `pnpm db:verify` to catch
+#     them before deploying.
+if [ "${SKIP_DB_PUSH:-0}" = "1" ]; then
+  echo "-> Skipping DB migrations (SKIP_DB_PUSH=1)."
+  echo "   Make sure the owner has already pushed migrations to Supabase."
+else
+  echo "-> Pushing DB migrations to Supabase ..."
+  if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && [ ! -f "$HOME/.supabase/access-token" ]; then
+    echo "   Supabase CLI is not authenticated."
+    echo "   Options:"
+    echo "     a) Run: pnpm exec supabase login"
+    echo "     b) Set SUPABASE_ACCESS_TOKEN in $ENV_FILE (https://supabase.com/dashboard/account/tokens)"
+    echo "     c) Set SKIP_DB_PUSH=1 and let the project owner push migrations."
+    exit 1
+  fi
+  pnpm exec supabase db push
 fi
-pnpm exec supabase db push
 
 # ---------- 6. Vercel CLI auth + link ----------
-if ! pnpm exec vercel whoami >/dev/null 2>&1; then
+# Two ways to authenticate:
+#   1. Interactive: pnpm exec vercel login (browser flow)
+#   2. Headless: export VERCEL_TOKEN=... (or put it in $ENV_FILE).
+#      Teammates can use a scoped token from https://vercel.com/account/tokens
+#      without ever logging in. The CLI auto-detects it.
+VERCEL_ARGS=()
+if [ -n "${VERCEL_TOKEN:-}" ]; then
+  VERCEL_ARGS+=(--token "$VERCEL_TOKEN")
+fi
+if [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+  # CI-style: skips interactive linking if both IDs are present
+  VERCEL_ARGS+=(--scope "${VERCEL_ORG_ID}")
+fi
+
+if ! pnpm exec vercel "${VERCEL_ARGS[@]}" whoami >/dev/null 2>&1; then
+  if [ -n "${VERCEL_TOKEN:-}" ]; then
+    echo "!! VERCEL_TOKEN provided but rejected. Check the token at vercel.com/account/tokens."
+    exit 1
+  fi
   echo "-> Logging into Vercel ..."
   pnpm exec vercel login
 fi
 
 if [ ! -d .vercel ]; then
   echo "-> Linking this directory to a Vercel project ..."
-  pnpm exec vercel link
+  pnpm exec vercel "${VERCEL_ARGS[@]}" link
 fi
 
 VENV="preview"
@@ -126,8 +165,8 @@ push_env() {
   local key="$1"
   local val="${!key:-}"
   if [ -z "$val" ]; then return; fi
-  pnpm exec vercel env rm "$key" "$VENV" -y >/dev/null 2>&1 || true
-  printf '%s' "$val" | pnpm exec vercel env add "$key" "$VENV" >/dev/null
+  pnpm exec vercel "${VERCEL_ARGS[@]}" env rm "$key" "$VENV" -y >/dev/null 2>&1 || true
+  printf '%s' "$val" | pnpm exec vercel "${VERCEL_ARGS[@]}" env add "$key" "$VENV" >/dev/null
   echo "   . $key"
 }
 
@@ -148,10 +187,10 @@ done
 # ---------- 8. Deploy ----------
 if [ "$TARGET" = "prod" ]; then
   echo "-> Deploying to PRODUCTION ..."
-  pnpm exec vercel --prod --yes
+  pnpm exec vercel "${VERCEL_ARGS[@]}" --prod --yes
 else
   echo "-> Deploying preview ..."
-  pnpm exec vercel --yes
+  pnpm exec vercel "${VERCEL_ARGS[@]}" --yes
 fi
 
 # ---------- 9. Post-deploy reminders ----------

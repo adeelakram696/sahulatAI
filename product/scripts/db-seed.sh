@@ -2,10 +2,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ ! -f .env.local ]; then
-  echo "!! .env.local not found"; exit 1
+ENV_FILE=""
+for candidate in .env.local .env.prod; do
+  if [ -f "$candidate" ]; then ENV_FILE="$candidate"; break; fi
+done
+if [ -z "$ENV_FILE" ]; then
+  echo "!! No env file found (looked for .env.local then .env.prod)."; exit 1
 fi
-set -a; source .env.local; set +a
+echo "-> Loading env from $ENV_FILE"
+set -a; source "$ENV_FILE"; set +a
 
 if [ -z "${DATABASE_URL:-}" ]; then
   echo "!! DATABASE_URL not set in .env.local"

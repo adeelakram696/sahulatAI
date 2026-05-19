@@ -2,15 +2,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ ! -f .env.local ]; then
-  echo "❌ .env.local not found. Copy .env.example and fill in values first."
+ENV_FILE=""
+for candidate in .env.local .env.prod; do
+  if [ -f "$candidate" ]; then ENV_FILE="$candidate"; break; fi
+done
+if [ -z "$ENV_FILE" ]; then
+  echo "❌ No env file found (looked for .env.local then .env.prod)."
+  echo "   Copy .env.example and fill in values first."
   exit 1
 fi
+echo "-> Loading env from $ENV_FILE"
 
 # Load env (export every variable for the supabase CLI subprocess)
 set -a
 # shellcheck disable=SC1091
-source .env.local
+source "$ENV_FILE"
 set +a
 
 if [ -z "${SUPABASE_PROJECT_REF:-}" ]; then

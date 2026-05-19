@@ -105,6 +105,16 @@ echo
 # ---- 2. env file -----------------------------------------------------------
 info "Step 2/6 — Configuring .env.local"
 
+# If a teammate dropped the shared .env.prod in but doesn't have .env.local
+# yet, mirror it so Next.js dev server (which only reads .env.local /
+# .env.development / .env / etc.) picks up the keys.
+if [ ! -f .env.local ] && [ -f .env.prod ]; then
+  if prompt_yes_no ".env.prod found but no .env.local. Copy .env.prod to .env.local so 'pnpm dev' works?" "Y"; then
+    cp .env.prod .env.local
+    ok ".env.prod → .env.local (Next.js dev server reads .env.local)"
+  fi
+fi
+
 if [ ! -f .env.local ]; then
   if [ -f .env.example ]; then
     cp .env.example .env.local

@@ -214,6 +214,34 @@ Prerequisites (the script verifies these): **Node ≥ 20**, **pnpm ≥ 9**, the 
 
 Re-running `scripts/setup.sh` is safe — every step skips if already done.
 
+### Teammate onboarding (no Supabase / Vercel login needed)
+
+The owner shares **one file**: `.env.prod` (it contains every secret the team needs — Supabase, Gemini, Maps, VAPID, plus `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` and `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_REF`). Distribute via 1Password or another secure channel — never plain Slack/email.
+
+Teammate steps from a fresh clone:
+
+```bash
+git clone <repo>
+cd <repo>/product
+# Drop the shared file in:
+cp /path/to/team-secrets/.env.prod ./.env.prod
+# One-time mirror so the Next.js dev server picks it up:
+cp .env.prod .env.local
+pnpm setup        # answer N to "your own Supabase project?" — defaults are safe
+pnpm db:verify    # read-only schema check
+pnpm dev          # http://localhost:3010
+```
+
+After that they can also:
+
+```bash
+pnpm db:push           # apply pending migrations (uses SUPABASE_ACCESS_TOKEN from env)
+pnpm deploy:preview    # headless deploy via VERCEL_TOKEN (no vercel login)
+pnpm deploy:prod       # production deploy
+```
+
+Every DB script (`db:verify`, `db:push`, `db:diff`, `db:link`, `db:reset`, `db:seed`) automatically loads `.env.local` first, falling back to `.env.prod` — so teammates don't have to think about which file is in use. The deploy script does the same.
+
 ### Deployment by teammates (no owner login required)
 
 **Recommended — Git-based auto-deploy.** Connect the GitHub repo to Vercel once (Vercel Dashboard → Project → Settings → Git). Every push to a branch produces a preview URL; merges to `main` go to production. Teammates need GitHub push access only — no Vercel login, no CLI, no token.
