@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { MapPin, ArrowUp, Plus, RotateCcw, Star, Navigation } from 'lucide-react';
 import PlacesContactDialog from '@/components/recommendations/places-contact-dialog';
 import { PriceBreakdownCard, type PriceBreakdown } from '@/components/booking/booking-realtime';
+import { BrandIcon } from '@/components/ui/brand-mark';
 
 type Location = { id: string; label: string; address_text: string; city: string | null; town_or_area: string | null };
 
@@ -174,9 +175,14 @@ export default function ChatSurface({
   const selectedLocation = locations.find((l) => l.id === selectedLocId)!;
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-57px-60px)] md:h-[calc(100dvh-57px)]">
+    <div className="relative flex flex-col h-[calc(100dvh-57px-60px)] md:h-[calc(100dvh-57px)]">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 size-[640px] rounded-full bg-[radial-gradient(closest-side,hsl(168_84%_30%/0.12),transparent_70%)] blur-3xl -z-10"
+      />
+
       {/* Location bar */}
-      <div className="border-b border-border bg-background/90 backdrop-blur-sm shrink-0">
+      <div className="relative border-b border-border/60 bg-background/90 backdrop-blur-sm shrink-0">
         <div className="container max-w-3xl py-2 flex items-center justify-between gap-2 min-w-0">
           <div className="flex-1 min-w-0">
             <LocationChip locations={locations} selectedId={selectedLocId} onChange={setSelectedLocId} selected={selectedLocation} />
@@ -210,9 +216,9 @@ export default function ChatSurface({
       </div>
 
       {/* Input footer */}
-      <footer className="border-t border-border bg-background/95 backdrop-blur-sm shrink-0">
+      <footer className="relative border-t border-border/60 bg-background/95 backdrop-blur-md shrink-0">
         <div className="container max-w-3xl py-2.5 sm:py-3">
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card shadow-sm px-3 sm:px-4 py-2 focus-within:border-primary/50 focus-within:shadow-primary-sm transition-all">
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card shadow-sm px-3 sm:px-4 py-2 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10 focus-within:shadow-primary-sm transition-all">
             <textarea
               ref={inputRef}
               value={input}
@@ -221,18 +227,19 @@ export default function ChatSurface({
               placeholder={pending ? 'Thinking…' : 'Describe what you need…'}
               disabled={pending}
               rows={1}
-              className="flex-1 resize-none bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 py-1.5 max-h-32"
+              className="flex-1 resize-none bg-transparent text-[14px] placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50 py-1.5 max-h-32"
             />
             <button
               onClick={() => send(input)}
               disabled={pending || !input.trim()}
-              className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:opacity-90 active:scale-95 transition-all mb-0.5"
+              aria-label="Send"
+              className="size-10 rounded-xl bg-brand-gradient text-white flex items-center justify-center shrink-0 shadow-primary-sm disabled:opacity-40 disabled:shadow-none hover:opacity-90 active:scale-95 transition-all mb-0.5"
             >
-              <ArrowUp className="size-4" />
+              <ArrowUp className="size-4" strokeWidth={2.5} />
             </button>
           </div>
           <p className="text-center text-[10px] text-muted-foreground/60 mt-1.5 hidden sm:block">
-            Enter to send · Shift+Enter for new line · Urdu, Roman Urdu & English
+            Enter to send · Shift+Enter for new line · Urdu, Roman Urdu &amp; English
           </p>
         </div>
       </footer>
@@ -242,20 +249,19 @@ export default function ChatSurface({
 
 function Empty({ onPickSuggestion }: { onPickSuggestion: (s: string) => void }) {
   return (
-    <div className="text-center py-12 space-y-6 animate-fade-in">
-      {/* Icon */}
-      <div className="inline-flex size-16 rounded-2xl bg-brand-gradient-subtle items-center justify-center">
-        <svg viewBox="0 0 32 32" fill="none" className="size-8 text-primary" aria-hidden>
-          <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H18l-4 4-4-4H8a2 2 0 0 1-2-2V8Z" fill="currentColor" fillOpacity=".15" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-          <circle cx="12" cy="13" r="1.5" fill="currentColor"/>
-          <circle cx="16" cy="13" r="1.5" fill="currentColor"/>
-          <circle cx="20" cy="13" r="1.5" fill="currentColor"/>
-        </svg>
+    <div className="text-center py-10 sm:py-14 space-y-6 animate-fade-in">
+      <div className="inline-flex shadow-primary-sm rounded-2xl">
+        <BrandIcon size="lg" />
       </div>
 
       <div className="space-y-1.5">
-        <h2 className="font-display font-700 text-2xl tracking-tight text-foreground">What do you need help with?</h2>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80">
+          SahuliatAI
+        </p>
+        <h2 className="font-display font-extrabold text-2xl sm:text-3xl tracking-tight text-foreground">
+          What do you need help with?
+        </h2>
+        <p className="text-[13.5px] sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
           Describe your problem in any language. I&apos;ll ask follow-ups, find the right provider, and book it.
         </p>
       </div>
@@ -265,10 +271,10 @@ function Empty({ onPickSuggestion }: { onPickSuggestion: (s: string) => void }) 
           <button
             key={s.text}
             onClick={() => onPickSuggestion(s.text)}
-            className="group rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm px-4 py-3 text-left transition-all"
+            className="group rounded-2xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-md active:scale-[0.98] px-4 py-3 text-left transition-all shadow-xs"
           >
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.lang}</span>
-            <p className="text-sm text-foreground mt-0.5 group-hover:text-primary transition-colors">{s.text}</p>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80">{s.lang}</span>
+            <p className="text-[13.5px] text-foreground mt-1 group-hover:text-primary transition-colors leading-snug">{s.text}</p>
           </button>
         ))}
       </div>
@@ -316,13 +322,7 @@ function TurnView({ turn, onChipSelect, isLast, pending }: { turn: ChatTurn; onC
 
   return (
     <div className="flex justify-start gap-2.5 animate-fade-in">
-      {/* AI avatar */}
-      <div className="size-7 rounded-lg bg-brand-gradient flex items-center justify-center shrink-0 mt-0.5 shadow-primary-sm">
-        <svg viewBox="0 0 16 16" fill="none" className="size-4 text-white" aria-hidden>
-          <path d="M8 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-3 5a3 3 0 0 1 6 0H5Z" fill="currentColor"/>
-          <circle cx="8" cy="10" r="4" fill="currentColor" fillOpacity=".2"/>
-        </svg>
-      </div>
+      <BrandIcon size="sm" className="mt-0.5" />
       <div className="flex-1 min-w-0 space-y-2.5">
         {turn.content && (
           <div className="rounded-2xl rounded-tl-md bg-card border border-border px-4 py-2.5 shadow-xs">
@@ -340,11 +340,7 @@ function TurnView({ turn, onChipSelect, isLast, pending }: { turn: ChatTurn; onC
 function ThinkingBubble() {
   return (
     <div className="flex justify-start gap-2.5 animate-fade-in">
-      <div className="size-7 rounded-lg bg-brand-gradient flex items-center justify-center shrink-0 shadow-primary-sm opacity-60">
-        <svg viewBox="0 0 16 16" fill="none" className="size-4 text-white" aria-hidden>
-          <path d="M8 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-3 5a3 3 0 0 1 6 0H5Z" fill="currentColor"/>
-        </svg>
-      </div>
+      <BrandIcon size="sm" className="opacity-70" />
       <div className="rounded-2xl rounded-tl-md bg-card border border-border px-4 py-3 shadow-xs inline-flex items-center gap-1.5">
         {[0, 150, 300].map((delay) => (
           <span
