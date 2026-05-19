@@ -121,6 +121,18 @@
   }
 }
 
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 @layer components {
   /* Glass card */
   .glass {
@@ -172,4 +184,48 @@
     @apply disabled:opacity-50 disabled:pointer-events-none;
     box-shadow: var(--shadow-xs);
   }
+
+  /* Today hero — multi-stop brand gradient with a hint of depth */
+  .bg-today-hero {
+    background:
+      radial-gradient(120% 80% at 100% 0%, hsl(168 90% 38% / 0.55) 0%, transparent 60%),
+      radial-gradient(120% 80% at 0% 100%, hsl(180 80% 30% / 0.55) 0%, transparent 55%),
+      linear-gradient(155deg, hsl(168 90% 18%) 0%, hsl(168 75% 22%) 45%, hsl(152 60% 26%) 100%);
+  }
+
+  /* Editorial story card backdrops — saturated, on-brand, depth via overlay */
+  .bg-story-night {
+    background:
+      radial-gradient(80% 60% at 20% 0%, hsl(220 80% 55% / 0.45) 0%, transparent 65%),
+      linear-gradient(160deg, hsl(225 60% 16%) 0%, hsl(220 70% 22%) 100%);
+  }
+  .bg-story-violet {
+    background:
+      radial-gradient(80% 60% at 100% 100%, hsl(280 80% 60% / 0.4) 0%, transparent 65%),
+      linear-gradient(160deg, hsl(265 55% 22%) 0%, hsl(280 50% 30%) 100%);
+  }
+  .bg-story-rose {
+    background:
+      radial-gradient(80% 60% at 100% 0%, hsl(345 90% 65% / 0.45) 0%, transparent 65%),
+      linear-gradient(160deg, hsl(345 60% 28%) 0%, hsl(20 60% 36%) 100%);
+  }
+  .bg-story-teal {
+    background:
+      radial-gradient(80% 60% at 0% 100%, hsl(168 90% 45% / 0.4) 0%, transparent 65%),
+      linear-gradient(160deg, hsl(180 70% 18%) 0%, hsl(168 70% 26%) 100%);
+  }
+
+  /* Tap-grain: subtle inset highlight for raised glass tiles */
+  .ring-inset-soft {
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+  }
+
+  .text-balance { text-wrap: balance; }
 }
+
+@keyframes orb {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(8px, -10px, 0) scale(1.05); }
+}
+.animate-orb { animation: orb 9s ease-in-out infinite; }
+.animate-orb-slow { animation: orb 14s ease-in-out infinite; }

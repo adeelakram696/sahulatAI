@@ -1,133 +1,117 @@
 import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/app-header';
-import { SERVICE_CATEGORIES } from '@/lib/services/categories';
-import { ServiceIcon } from '@/components/ui/service-icon';
-import { ArrowRight, Sparkles, MapPin, MessageCircle } from 'lucide-react';
+import PromoCarousel from '@/components/home/promo-carousel';
+import QuickChips from '@/components/home/quick-chips';
+import FeaturedStrip from '@/components/home/featured-strip';
+import TrendingStrip from '@/components/home/trending-strip';
+import BrowseGrid from '@/components/home/browse-grid';
+import StatsStrip from '@/components/home/stats-strip';
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, providerCountRes] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('providers').select('id', { count: 'exact', head: true }),
+  ]);
+  const providerCount = providerCountRes.count ?? null;
+  const authed = !!user;
 
-  const quick = SERVICE_CATEGORIES.filter((c) => c.is_quick);
+  const chatStartHref = authed ? '/chat' : '/auth/signup?next=/chat';
 
   return (
     <>
       <AppHeader />
-      <main>
-        {/* Hero */}
-        <section className="relative overflow-hidden">
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-hero-gradient opacity-[0.07] dark:opacity-[0.12]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,hsl(168_84%_26%/0.12),transparent)]" />
+      <main className="pb-12 md:pb-16">
 
-          <div className="container max-w-3xl relative pt-14 pb-12 md:pt-20 md:pb-16 text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary mb-6">
-              <Sparkles className="size-3" />
-              AI-powered service booking
-            </div>
-
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-800 tracking-tight text-foreground mb-4 leading-[1.1]">
-              What service do you{' '}
-              <span className="text-gradient">need today?</span>
+        {/* Welcome + hero promo */}
+        <section className="container max-w-3xl pt-4 sm:pt-6">
+          <div className="animate-fade-in">
+            <h1 className="font-display font-extrabold text-[22px] sm:text-[26px] tracking-[-0.03em] leading-tight text-foreground">
+              Welcome to SahuliatAI
             </h1>
-
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto mb-6 sm:mb-8 leading-relaxed px-2">
-              Describe your problem in Urdu, Roman Urdu, or English — our AI finds and books the right provider near you.
-            </p>
-
-            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
-              <Link
-                href={user ? '/chat' : '/auth/signup?next=/chat'}
-                className="btn-primary gap-2 !px-6 !py-3 !text-sm"
-              >
-                <MessageCircle className="size-4" />
-                {user ? 'Open AI chat' : 'Get started free'}
-                <ArrowRight className="size-4" />
-              </Link>
-              <Link
-                href={user ? '/map' : '/auth/signup?next=/map'}
-                className="btn-ghost gap-2 !px-6 !py-3 !text-sm"
-              >
-                <MapPin className="size-4 text-muted-foreground" />
-                Browse on map
-              </Link>
-            </div>
-
-            {/* Trust line */}
-            <p className="mt-6 text-xs text-muted-foreground/70">
-              Works in Urdu, Roman Urdu & English · No download needed
+            <p className="mt-1.5 text-base sm:text-lg font-medium text-foreground/80 tracking-tight">
+              How may I help you today?
             </p>
           </div>
-        </section>
 
-        {/* Quick chips */}
-        <section className="container max-w-3xl pb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Most popular</p>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-            {quick.map((c) => (
-              <CategoryChip key={c.slug} category={c} authed={!!user} />
-            ))}
+          <div
+            className="mt-4 animate-slide-up"
+            style={{ animationDelay: '60ms', animationFillMode: 'both' }}
+          >
+            <PromoCarousel authed={authed} />
           </div>
         </section>
 
-        {/* Full grid */}
-        <section className="container max-w-3xl py-6">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">All services</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
-            {SERVICE_CATEGORIES.map((c) => (
-              <CategoryTile key={c.slug} category={c} authed={!!user} />
-            ))}
-          </div>
-        </section>
-
-        {/* Provider CTA */}
-        <section className="container max-w-3xl py-8 pb-12">
-          <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row items-center gap-4 shadow-sm">
-            <ServiceIcon slug="appliance_repair" size="lg" />
-            <div className="flex-1 text-center sm:text-left">
-              <h3 className="font-display font-700 text-base text-foreground">Are you a service provider?</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">List your business and receive AI-matched customer requests directly.</p>
-            </div>
-            <Link href="/for-business" className="btn-ghost !text-xs !py-2 !px-4 shrink-0">
-              List your service →
+        {/* Quick action chips */}
+        <section className="container max-w-3xl pt-5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+              Quick actions
+            </h2>
+            <Link
+              href={chatStartHref}
+              className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:text-primary/80 transition-colors"
+            >
+              <Sparkles className="size-3" strokeWidth={2.5} />
+              Ask AI
             </Link>
           </div>
+          <QuickChips authed={authed} />
         </section>
+
+        {/* Top picks — large gradient cards */}
+        <section className="mt-6 sm:mt-7 bg-secondary/30">
+          <div className="container max-w-3xl py-5">
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <h2 className="font-display font-bold text-[16px] sm:text-[17px] tracking-tight text-foreground">
+                  Top picks for you
+                </h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Most-requested services across Pakistan
+                </p>
+              </div>
+            </div>
+            <FeaturedStrip authed={authed} />
+          </div>
+        </section>
+
+        {/* Trending */}
+        <section className="container max-w-3xl pt-6">
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <h2 className="font-display font-bold text-[16px] sm:text-[17px] tracking-tight text-foreground">
+                Trending in your city
+              </h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">
+                What people are booking right now
+              </p>
+            </div>
+          </div>
+          <TrendingStrip authed={authed} />
+        </section>
+
+        {/* Trust / social proof */}
+        <section className="container max-w-3xl pt-6">
+          <StatsStrip providerCount={providerCount} />
+        </section>
+
+        {/* Browse all */}
+        <section className="container max-w-3xl pt-6">
+          <div className="flex items-end justify-between mb-3">
+            <h2 className="font-display font-bold text-[16px] sm:text-[17px] tracking-tight text-foreground">
+              Browse all services
+            </h2>
+            <span className="text-[11.5px] font-medium text-muted-foreground">
+              12 more
+            </span>
+          </div>
+          <BrowseGrid authed={authed} />
+        </section>
+
       </main>
     </>
   );
-}
-
-function CategoryChip({ category, authed }: { category: typeof SERVICE_CATEGORIES[number]; authed: boolean }) {
-  return (
-    <Link
-      href={chatHref(category, authed)}
-      className="shrink-0 inline-flex items-center gap-2 rounded-full border border-border bg-card hover:bg-accent hover:border-primary/30 hover:text-primary pl-1.5 pr-3.5 py-1.5 text-xs font-medium transition-all shadow-xs"
-    >
-      <ServiceIcon slug={category.slug} size="sm" />
-      <span>{category.label_en}</span>
-    </Link>
-  );
-}
-
-function CategoryTile({ category, authed }: { category: typeof SERVICE_CATEGORIES[number]; authed: boolean }) {
-  return (
-    <Link
-      href={chatHref(category, authed)}
-      className="group flex flex-col items-center rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all p-2.5 sm:p-3.5 text-center gap-1.5 sm:gap-2"
-    >
-      <ServiceIcon slug={category.slug} size="md" className="transition-transform group-hover:scale-105" />
-      <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
-        {category.label_en}
-      </div>
-    </Link>
-  );
-}
-
-function chatHref(category: typeof SERVICE_CATEGORIES[number], authed: boolean): string {
-  const search = new URLSearchParams({ q: category.prompt_en, slug: category.slug, autosubmit: '1' });
-  const target = `/chat?${search.toString()}`;
-  return authed ? target : `/auth/signup?next=${encodeURIComponent(target)}`;
 }

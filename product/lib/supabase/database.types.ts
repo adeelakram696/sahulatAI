@@ -70,9 +70,30 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           agent_run_id: string | null
+          arrived_at: string | null
+          completed_at: string | null
+          complexity: string | null
           confirmed_at: string | null
           created_at: string
           customer_lang: string
@@ -80,6 +101,8 @@ export type Database = {
           customer_phone_snapshot: string | null
           customer_user_id: string
           customer_user_location_id: string
+          en_route_at: string | null
+          evidence_photos: string[]
           id: string
           invitation_channel: string | null
           invitation_sent_at: string
@@ -87,10 +110,13 @@ export type Database = {
           location_point: unknown
           location_text: string
           notes: string | null
+          price_breakdown: Json | null
           price_estimate: Json | null
           provider_id: string
           receipt_pdf_url: string | null
           service_category: string
+          service_checklist: Json | null
+          service_photos: Json | null
           slot_end: string
           slot_start: string
           status: string
@@ -98,6 +124,9 @@ export type Database = {
         }
         Insert: {
           agent_run_id?: string | null
+          arrived_at?: string | null
+          completed_at?: string | null
+          complexity?: string | null
           confirmed_at?: string | null
           created_at?: string
           customer_lang?: string
@@ -105,6 +134,8 @@ export type Database = {
           customer_phone_snapshot?: string | null
           customer_user_id: string
           customer_user_location_id: string
+          en_route_at?: string | null
+          evidence_photos?: string[]
           id?: string
           invitation_channel?: string | null
           invitation_sent_at?: string
@@ -112,10 +143,13 @@ export type Database = {
           location_point: unknown
           location_text: string
           notes?: string | null
+          price_breakdown?: Json | null
           price_estimate?: Json | null
           provider_id: string
           receipt_pdf_url?: string | null
           service_category: string
+          service_checklist?: Json | null
+          service_photos?: Json | null
           slot_end: string
           slot_start: string
           status?: string
@@ -123,6 +157,9 @@ export type Database = {
         }
         Update: {
           agent_run_id?: string | null
+          arrived_at?: string | null
+          completed_at?: string | null
+          complexity?: string | null
           confirmed_at?: string | null
           created_at?: string
           customer_lang?: string
@@ -130,6 +167,8 @@ export type Database = {
           customer_phone_snapshot?: string | null
           customer_user_id?: string
           customer_user_location_id?: string
+          en_route_at?: string | null
+          evidence_photos?: string[]
           id?: string
           invitation_channel?: string | null
           invitation_sent_at?: string
@@ -137,10 +176,13 @@ export type Database = {
           location_point?: unknown
           location_text?: string
           notes?: string | null
+          price_breakdown?: Json | null
           price_estimate?: Json | null
           provider_id?: string
           receipt_pdf_url?: string | null
           service_category?: string
+          service_checklist?: Json | null
+          service_photos?: Json | null
           slot_end?: string
           slot_start?: string
           status?: string
@@ -167,6 +209,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "service_categories"
             referencedColumns: ["slug"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          booking_id: string
+          escalated_at: string | null
+          id: string
+          kind: string
+          opened_at: string
+          opened_by: string
+          opener_role: string
+          resolution: Json | null
+          resolved_at: string | null
+          statements: Json
+          status: string
+        }
+        Insert: {
+          booking_id: string
+          escalated_at?: string | null
+          id?: string
+          kind: string
+          opened_at?: string
+          opened_by: string
+          opener_role: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          statements?: Json
+          status?: string
+        }
+        Update: {
+          booking_id?: string
+          escalated_at?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string
+          opened_by?: string
+          opener_role?: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          statements?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -208,17 +300,57 @@ export type Database = {
           },
         ]
       }
+      places_contacts: {
+        Row: {
+          body: string
+          business_name: string
+          channel: string
+          created_at: string
+          id: string
+          place_id: string
+          recipient: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          business_name: string
+          channel: string
+          created_at?: string
+          id?: string
+          place_id: string
+          recipient: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          business_name?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          place_id?: string
+          recipient?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       providers: {
         Row: {
           avg_duration: string
+          base_hourly_rate: number
+          base_visit_fee: number
           blackout_dates: string[]
           business_name: string
+          cancellation_rate: number
+          capacity: number
           categories: string[]
+          certifications: string[]
           created_at: string
           external_place_id: string | null
           hub_location: unknown
           id: string
           languages: string[]
+          last_review_at: string | null
+          on_time_score: number
           owner_user_id: string | null
           phone: string | null
           phone_verified: boolean
@@ -228,24 +360,34 @@ export type Database = {
           rating_avg: number
           rating_count: number
           response_time_minutes: number | null
+          risk_score: number
           service_area: unknown
           service_radius_km: number | null
           slug: string | null
           sms_opt_in: boolean
           source: string
+          specializations: string[]
+          tools_required: string[]
           weekly_hours: Json
           whatsapp_opt_in: boolean
         }
         Insert: {
           avg_duration?: string
+          base_hourly_rate?: number
+          base_visit_fee?: number
           blackout_dates?: string[]
           business_name: string
+          cancellation_rate?: number
+          capacity?: number
           categories?: string[]
+          certifications?: string[]
           created_at?: string
           external_place_id?: string | null
           hub_location?: unknown
           id?: string
           languages?: string[]
+          last_review_at?: string | null
+          on_time_score?: number
           owner_user_id?: string | null
           phone?: string | null
           phone_verified?: boolean
@@ -255,24 +397,34 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           response_time_minutes?: number | null
+          risk_score?: number
           service_area?: unknown
           service_radius_km?: number | null
           slug?: string | null
           sms_opt_in?: boolean
           source?: string
+          specializations?: string[]
+          tools_required?: string[]
           weekly_hours?: Json
           whatsapp_opt_in?: boolean
         }
         Update: {
           avg_duration?: string
+          base_hourly_rate?: number
+          base_visit_fee?: number
           blackout_dates?: string[]
           business_name?: string
+          cancellation_rate?: number
+          capacity?: number
           categories?: string[]
+          certifications?: string[]
           created_at?: string
           external_place_id?: string | null
           hub_location?: unknown
           id?: string
           languages?: string[]
+          last_review_at?: string | null
+          on_time_score?: number
           owner_user_id?: string | null
           phone?: string | null
           phone_verified?: boolean
@@ -282,11 +434,14 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           response_time_minutes?: number | null
+          risk_score?: number
           service_area?: unknown
           service_radius_km?: number | null
           slug?: string | null
           sms_opt_in?: boolean
           source?: string
+          specializations?: string[]
+          tools_required?: string[]
           weekly_hours?: Json
           whatsapp_opt_in?: boolean
         }
@@ -695,6 +850,23 @@ export type Database = {
           next_available: string
         }[]
       }
+      claim_places_provider: {
+        Args: { p_place_id: string }
+        Returns: {
+          claimed: boolean
+          provider_id: string
+        }[]
+      }
+      count_recent_bookings_in_area: {
+        Args: {
+          p_lat: number
+          p_lng: number
+          p_radius_km?: number
+          p_service_slug: string
+          p_since?: string
+        }
+        Returns: number
+      }
       disablelongtransactions: { Args: never; Returns: string }
       drain_due_reminders: { Args: never; Returns: undefined }
       dropgeometrycolumn:
@@ -827,6 +999,20 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_user_location_geo: {
+        Args: { p_id: string }
+        Returns: {
+          address_text: string
+          city: string
+          country_code: string
+          id: string
+          label: string
+          lat: number
+          lng: number
+          town_or_area: string
+          user_id: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
@@ -869,6 +1055,26 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      providers_in_bbox: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lng: number
+          p_radius_km?: number
+        }
+        Returns: {
+          business_name: string
+          categories: string[]
+          distance_m: number
+          hub_lat: number
+          hub_lng: number
+          id: string
+          phone: string
+          photo_url: string
+          rating_avg: number
+          rating_count: number
+        }[]
+      }
       search_providers_rpc: {
         Args: {
           p_exclude_ids?: string[]
@@ -880,20 +1086,28 @@ export type Database = {
         }
         Returns: {
           avg_duration: string
+          base_hourly_rate: number
+          base_visit_fee: number
           business_name: string
+          cancellation_rate: number
+          capacity: number
           distance_m: number
           hub_lat: number
           hub_lng: number
           id: string
           languages: string[]
+          last_review_at: string
+          on_time_score: number
           phone: string
           photo_url: string
           price_band: Json
           rating_avg: number
           rating_count: number
           response_time_minutes: number
+          risk_score: number
           sms_opt_in: boolean
           source: string
+          specializations: string[]
           whatsapp_opt_in: boolean
         }[]
       }
@@ -1136,6 +1350,12 @@ export type Database = {
             Returns: number
           }
         | { Args: { geom1: unknown; geom2: unknown }; Returns: number }
+      st_distance_to_provider: {
+        Args: { p_lat: number; p_lng: number; p_provider_id: string }
+        Returns: {
+          distance_m: number
+        }[]
+      }
       st_distancesphere:
         | { Args: { geom1: unknown; geom2: unknown }; Returns: number }
         | {
@@ -1487,6 +1707,17 @@ export type Database = {
           new_srid_in: number
           schema_name: string
           table_name: string
+        }
+        Returns: string
+      }
+      upsert_places_provider: {
+        Args: {
+          p_business_name: string
+          p_categories?: string[]
+          p_lat?: number
+          p_lng?: number
+          p_phone?: string
+          p_place_id: string
         }
         Returns: string
       }
