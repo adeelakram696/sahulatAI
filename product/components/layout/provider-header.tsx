@@ -1,8 +1,3 @@
-/**
- * Provider-side top nav. Mirrors AppHeader's shape but with provider-specific
- * links (Dashboard / Settings) and a "Switch to customer view" affordance in
- * the user menu so providers can also act as customers when needed.
- */
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import UserMenu from './user-menu';
@@ -18,39 +13,82 @@ export default async function ProviderHeader({
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="bg-gradient-to-r from-teal-700 to-emerald-700 text-white shadow-md sticky top-0 z-10">
-      <div className="container max-w-4xl flex items-center justify-between py-3">
-        <Link href={user ? '/provider/dashboard' : '/'} className="font-semibold tracking-tight flex items-center gap-2 text-white">
-          SahuliatAI
-          <span className="text-[10px] uppercase tracking-wider rounded-full bg-white/20 text-white px-1.5 py-0.5">
-            provider
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl shadow-xs">
+      <div className="container max-w-4xl flex h-14 items-center justify-between gap-4">
+
+        {/* Brand */}
+        <Link href={user ? '/provider/dashboard' : '/'} className="flex items-center gap-2 shrink-0 group">
+          <div className="size-7 rounded-lg bg-brand-gradient flex items-center justify-center shadow-primary-sm">
+            <svg viewBox="0 0 20 20" fill="none" className="size-4 text-white" aria-hidden>
+              <path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2Zm0 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm-3 8.5a3 3 0 0 1 6 0H7Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <span className="font-display font-700 text-[15px] tracking-tight text-foreground group-hover:text-primary transition-colors">
+            SahuliatAI
+          </span>
+          <span className="hidden sm:inline-flex text-[10px] font-semibold uppercase tracking-wider rounded-full border border-primary/30 bg-primary/8 text-primary px-2 py-0.5">
+            Provider
           </span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+
+        {/* Desktop nav */}
+        {user && (
+          <nav className="hidden md:flex items-center gap-1">
+            <NavLink href="/provider/dashboard" label="Dashboard" active={active === 'dashboard'} />
+            <NavLink href="/provider/disputes" label="Disputes" active={active === 'disputes'} />
+            <NavLink href="/provider/settings" label="Settings" active={active === 'settings'} />
+          </nav>
+        )}
+
+        {/* Right */}
+        <div className="flex items-center gap-2 shrink-0">
           {user ? (
-            <>
-              <NavLink href="/provider/dashboard" label="Dashboard" active={active === 'dashboard'} />
-              <NavLink href="/provider/disputes" label="Disputes" active={active === 'disputes'} />
-              <NavLink href="/provider/settings" label="Settings" active={active === 'settings'} />
-              <UserMenu email={user.email ?? ''} extraLinks={[{ href: '/chat', label: 'Switch to customer view' }]} />
-            </>
+            <UserMenu email={user.email ?? ''} extraLinks={[{ href: '/chat', label: 'Switch to customer view' }]} />
           ) : (
-            <Link href="/auth/signin" className="font-medium">Sign in</Link>
+            <Link href="/auth/signin" className="btn-ghost !py-1.5 !px-4 !text-xs">Sign in</Link>
           )}
-        </nav>
+        </div>
       </div>
-      {businessName && (
-        <div className="container max-w-4xl pb-2 text-xs text-white/80">
-          Acting as <span className="font-semibold text-white">{businessName}</span>
+
+      {/* Mobile tab nav */}
+      {user && (
+        <div className="md:hidden border-t border-border/40">
+          <div className="container max-w-4xl flex">
+            <MobileNavTab href="/provider/dashboard" label="Dashboard" active={active === 'dashboard'} />
+            <MobileNavTab href="/provider/disputes" label="Disputes" active={active === 'disputes'} />
+            <MobileNavTab href="/provider/settings" label="Settings" active={active === 'settings'} />
+          </div>
         </div>
       )}
+
     </header>
   );
 }
 
-function NavLink({ href, label, active }: { href: string; label: string; active?: boolean }) {
+function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
-    <Link href={href} className={active ? 'font-semibold text-white' : 'text-white/80 hover:text-white'}>
+    <Link
+      href={href}
+      className={`relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+        active ? 'text-primary bg-primary/8' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+      }`}
+    >
+      {label}
+      {active && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />}
+    </Link>
+  );
+}
+
+function MobileNavTab({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`flex-1 text-center py-2.5 text-xs font-semibold border-b-2 transition-colors ${
+        active
+          ? 'text-primary border-primary'
+          : 'text-muted-foreground border-transparent hover:text-foreground'
+      }`}
+    >
       {label}
     </Link>
   );

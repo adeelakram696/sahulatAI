@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps';
 import { SERVICE_CATEGORIES, getCategory } from '@/lib/services/categories';
+import { ServiceIcon } from '@/components/ui/service-icon';
 import { toast } from 'sonner';
 
 interface Provider {
@@ -115,9 +116,9 @@ function CategoryFilters({ selected, onSelect }: { selected: string | null; onSe
         <button
           key={c.slug}
           onClick={() => onSelect(c.slug)}
-          className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium ${selected === c.slug ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-accent'}`}
+          className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border pl-1 pr-3 py-1 text-xs font-medium ${selected === c.slug ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-accent'}`}
         >
-          <span aria-hidden>{c.emoji}</span>
+          <ServiceIcon slug={c.slug} size="sm" />
           <span>{c.label_en}</span>
         </button>
       ))}
@@ -143,8 +144,8 @@ function ProviderMarker({ provider, onClick }: { provider: Provider; onClick: (p
       title={provider.business_name}
     >
       <div className="flex flex-col items-center">
-        <div className="bg-card border border-primary/60 rounded-full size-9 flex items-center justify-center text-lg shadow-md">
-          {cat?.emoji ?? '📍'}
+        <div className="border border-primary/40 rounded-full shadow-md overflow-hidden">
+          <ServiceIcon slug={primaryCategory ?? ''} size="sm" />
         </div>
       </div>
     </AdvancedMarker>

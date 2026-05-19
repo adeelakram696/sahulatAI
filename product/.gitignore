@@ -23,3 +23,6 @@ signing.keystore
 
 # Generated at build time from env vars
 public/.well-known/assetlinks.json
+
+# Claude Code
+.claude/

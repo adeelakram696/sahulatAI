@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: '1rem',
+      padding: { DEFAULT: '1rem', sm: '1.5rem', lg: '2rem' },
       screens: { '2xl': '1400px' },
     },
     extend: {
@@ -49,10 +49,39 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
         urdu: ['Noto Nastaliq Urdu', 'serif'],
+      },
+      boxShadow: {
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        xl: 'var(--shadow-xl)',
+        'primary-sm': '0 1px 3px hsl(var(--primary) / 0.3), 0 4px 12px hsl(var(--primary) / 0.15)',
+        'primary-md': '0 2px 8px hsl(var(--primary) / 0.35), 0 8px 24px hsl(var(--primary) / 0.2)',
+        'inner-xs': 'inset 0 1px 2px rgb(0 0 0 / 0.05)',
+      },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(135deg, hsl(168 84% 26%), hsl(168 70% 36%), hsl(152 70% 36%))',
+        'brand-gradient-subtle': 'linear-gradient(135deg, hsl(168 84% 26% / 0.08), hsl(168 70% 36% / 0.04))',
+        'hero-gradient': 'linear-gradient(160deg, hsl(168 84% 24%), hsl(180 70% 28%), hsl(152 60% 30%))',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'slide-up': 'slideUp 0.25s ease-out',
+        'scale-in': 'scaleIn 0.15s ease-out',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+        slideUp: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        scaleIn: { from: { opacity: '0', transform: 'scale(0.95)' }, to: { opacity: '1', transform: 'scale(1)' } },
       },
     },
   },

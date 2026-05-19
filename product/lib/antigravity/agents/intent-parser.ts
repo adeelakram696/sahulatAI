@@ -87,6 +87,13 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
   let llmNotes = '';
   let complexity: 'basic' | 'intermediate' | 'complex' = 'basic';
 
+  // Budget preference — deterministic keyword extraction (runs before LLM).
+  const LOW_BUDGET_WORDS = ['sasta', 'cheap', 'affordable', 'kam daam', 'kam paise', 'budget', 'economical', 'سستا'];
+  const HIGH_BUDGET_WORDS = ['best', 'premium', 'top', 'acha wala', 'mahenga', 'mehenga', 'expensive', 'quality', 'beh'];
+  let budgetPreference: 'low' | 'mid' | 'high' | null = null;
+  if (LOW_BUDGET_WORDS.some((w) => text.includes(w))) budgetPreference = 'low';
+  else if (HIGH_BUDGET_WORDS.some((w) => text.includes(w))) budgetPreference = 'high';
+
   // 1) PRIMARY: LLM classification with context awareness.
   // The LLM understands phrasing like "tank clean karwana hai" → plumber,
   // "AC me gas chahiye" → ac_repair, "kal subah hair cut" → beautician.
@@ -184,6 +191,7 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
     urgency,
     notes: llmNotes,
     complexity,
+    budget_preference: budgetPreference,
     needs_clarification: needsClarification,
   };
 

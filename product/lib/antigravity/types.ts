@@ -92,6 +92,7 @@ export const IntentSchema = z.object({
   urgency: z.enum(['now', 'today', 'tomorrow', 'this_week']),
   notes: z.string().default(''),
   complexity: z.enum(['basic', 'intermediate', 'complex']).default('basic'),
+  budget_preference: z.enum(['low', 'mid', 'high']).nullable().optional(),
   needs_clarification: z.object({
     field: z.string(),
     question_en: z.string(),

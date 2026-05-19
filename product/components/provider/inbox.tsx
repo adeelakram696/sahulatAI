@@ -37,6 +37,7 @@ interface Booking {
   notes?: string | null;
   invitation_channel?: string | null;
   service_checklist?: ChecklistItem[] | null;
+  evidence_photos?: string[] | null;
 }
 
 const DEFAULT_CHECKLIST: Record<string, ChecklistItem[]> = {
@@ -535,6 +536,7 @@ function BookingRow({
       <CompleteJobModal
         open={completeModalOpen}
         onClose={() => setCompleteModalOpen(false)}
+        bookingId={b.id}
         defaultChecklist={b.service_checklist ?? checklistFor(b.service_category)}
         onConfirm={async (checklist) => {
           await changeStatus('completed', { checklist });
@@ -546,14 +548,17 @@ function BookingRow({
 }
 
 function CompleteJobModal({
-  open, onClose, defaultChecklist, onConfirm,
+  open, onClose, bookingId, defaultChecklist, onConfirm,
 }: {
   open: boolean;
   onClose: () => void;
+  bookingId: string;
   defaultChecklist: ChecklistItem[];
   onConfirm: (checklist: ChecklistItem[]) => Promise<void>;
 }) {
   const [items, setItems] = useState<ChecklistItem[]>(defaultChecklist);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false);
 
   useEffect(() => { setItems(defaultChecklist); }, [defaultChecklist]);
@@ -561,9 +566,30 @@ function CompleteJobModal({
   if (!open) return null;
   const allDone = items.every((i) => i.done);
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (uploadedPhotos.length >= 5) { toast.error('Maximum 5 photos allowed.'); return; }
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`/api/bookings/${bookingId}/evidence`, { method: 'POST', body: form });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || data.error) throw new Error(data.error ?? 'Upload failed');
+      setUploadedPhotos((prev) => [...prev, data.url!]);
+      toast.success('Photo uploaded.');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-card rounded-xl border border-border w-full max-w-md shadow-xl">
+      <div className="bg-card rounded-xl border border-border w-full max-w-md shadow-xl overflow-y-auto max-h-[90dvh]">
         <div className="p-5 border-b border-border">
           <h3 className="font-semibold text-base">Confirm completion</h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -587,6 +613,28 @@ function CompleteJobModal({
             </label>
           ))}
         </div>
+
+        {/* Photo evidence section */}
+        <div className="px-5 pb-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Photo Evidence (optional, max 5)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {uploadedPhotos.map((url, i) => (
+              <div key={i} className="size-14 rounded-md overflow-hidden border border-border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+            {uploadedPhotos.length < 5 && (
+              <label className={`size-14 rounded-md border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:bg-accent transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <span className="text-2xl text-muted-foreground">{uploading ? '…' : '+'}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+              </label>
+            )}
+          </div>
+        </div>
+
         <div className="p-5 border-t border-border flex gap-2 justify-end">
           <button
             onClick={onClose}

@@ -36,25 +36,24 @@ export default function SigninForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1.5">Email</label>
+        <label className="block text-sm font-semibold text-foreground mb-1.5">Email</label>
         <input
           type="email" required autoComplete="email"
           value={email} onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="you@example.com"
+          className="input-field"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1.5">Password</label>
+        <label className="block text-sm font-semibold text-foreground mb-1.5">Password</label>
         <input
           type="password" required autoComplete="current-password"
           value={password} onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="••••••••"
+          className="input-field"
         />
       </div>
-      <button
-        type="submit" disabled={pending}
-        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 font-medium disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className="btn-primary w-full !py-2.5 !text-sm mt-1">
         {pending ? 'Signing in…' : 'Sign in'}
       </button>
     </form>

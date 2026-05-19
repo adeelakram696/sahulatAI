@@ -12,6 +12,7 @@
  */
 import { admin } from '@/lib/supabase/admin';
 import { env, isGeminiConfigured } from '@/lib/env';
+import { nextStepIndex } from '../trace';
 import { runDiscovery } from './discovery';
 import { runRanking } from './ranking';
 import { runBookingPhaseA } from './booking';
@@ -61,6 +62,17 @@ export type ConversationArtifact =
       place_name: string;
       channel: 'sms' | 'email' | 'mock';
       message_body: string;
+    }
+  | {
+      type: 'clarification';
+      question: string;
+      options: string[];
+    }
+  | {
+      type: 'slot_suggestions';
+      provider_id: string;
+      provider_name: string;
+      slots: Array<{ iso: string; label: string }>;
     };
 
 export interface ConversationOutput {
@@ -89,8 +101,39 @@ const TOOL_DECLARATIONS = [
         notes: { type: 'string', description: 'Any specific need extracted from the conversation (e.g. "water tank cleaning", "screen replacement").' },
         complexity: { type: 'string', enum: ['basic', 'intermediate', 'complex'], description: 'Job complexity. basic = single task, intermediate = 1-2 hours, complex = multi-hour / specialist. Drives matching + pricing.' },
         urgency: { type: 'string', enum: ['now', 'today', 'tomorrow', 'this_week'], description: 'How urgent the request is. Affects pricing.' },
+        budget_preference: { type: 'string', enum: ['low', 'mid', 'high'], description: 'User budget preference if mentioned. low = sasta/cheap, high = best/premium.' },
       },
       required: ['service_slug'],
+    },
+  },
+  {
+    name: 'ask_clarification',
+    description:
+      'Ask the user a clarifying question with 2–4 quick-reply options. Use when the service category or critical detail is genuinely ambiguous. Do NOT use for simple confirmations — ask those in plain text.',
+    parameters: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'Short clarifying question (≤ 80 chars).' },
+        options: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '2 to 4 short option labels the user can tap (e.g. ["AC cooling issue", "AC gas refill", "Other"]).',
+        },
+      },
+      required: ['question', 'options'],
+    },
+  },
+  {
+    name: 'suggest_alternate_slots',
+    description:
+      'When the requested slot is unavailable for a provider, find the next 3 free time windows. Only call after a search_providers call has already returned bookable providers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        provider_id: { type: 'string', description: 'UUID of the provider.' },
+        preferred_slot_iso: { type: 'string', description: 'The originally requested slot (ISO 8601).' },
+      },
+      required: ['provider_id', 'preferred_slot_iso'],
     },
   },
   {
@@ -263,20 +306,24 @@ async function dispatchTool(call: { name: string; args: Record<string, unknown> 
   const args = call.args ?? {};
   switch (call.name) {
     case 'search_providers':
-      return await toolSearchProviders(args as { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' }, ctx);
+      return await toolSearchProviders(args as { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week'; budget_preference?: 'low' | 'mid' | 'high' }, ctx);
     case 'book_appointment':
       return await toolBookAppointment(args as { provider_id: string; slot_iso: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' }, ctx);
     case 'contact_places_provider':
       return await toolContactPlacesProvider(args as {
         place_id: string; business_name: string; requested_time: string; user_note?: string;
       }, ctx);
+    case 'ask_clarification':
+      return toolAskClarification(args as { question: string; options: string[] }, ctx);
+    case 'suggest_alternate_slots':
+      return await toolSuggestAlternateSlots(args as { provider_id: string; preferred_slot_iso: string }, ctx);
     default:
       return { error: `unknown tool: ${call.name}` };
   }
 }
 
 async function toolSearchProviders(
-  args: { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' },
+  args: { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week'; budget_preference?: 'low' | 'mid' | 'high' },
   ctx: ToolDispatchContext,
 ): Promise<unknown> {
   const timeIso = args.time_iso || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -311,6 +358,7 @@ async function toolSearchProviders(
       user_location: { point: intent.location.point, address_text: intent.location.text },
       customer_user_id: ctx.input.user_id,
       complexity,
+      budget_preference: args.budget_preference ?? null,
     },
     ctx,
     await nextStep(ctx),
@@ -548,14 +596,74 @@ async function toolContactPlacesProvider(
   };
 }
 
+function toolAskClarification(
+  args: { question: string; options: string[] },
+  ctx: ToolDispatchContext,
+): unknown {
+  ctx.artifacts.push({ type: 'clarification', question: args.question, options: args.options.slice(0, 4) });
+  return { status: 'question_shown', options_count: args.options.length };
+}
+
+async function toolSuggestAlternateSlots(
+  args: { provider_id: string; preferred_slot_iso: string },
+  ctx: ToolDispatchContext,
+): Promise<unknown> {
+  const preferredStart = new Date(args.preferred_slot_iso);
+  const slotDurationMs = 60 * 60 * 1000; // 1-hour windows
+
+  // Check up to 12 hourly windows starting from the preferred slot.
+  const candidates: Array<{ iso: string; label: string }> = [];
+  for (let h = 1; h <= 12 && candidates.length < 3; h++) {
+    const start = new Date(preferredStart.getTime() + h * slotDurationMs);
+    const end = new Date(start.getTime() + slotDurationMs);
+    try {
+      const avail = await admin
+        .rpc('check_availability_rpc', {
+          p_provider_id: args.provider_id,
+          p_slot_start: start.toISOString(),
+          p_slot_end: end.toISOString(),
+        })
+        .maybeSingle<{ available: boolean }>();
+      if (avail.data?.available !== false) {
+        candidates.push({
+          iso: start.toISOString(),
+          label: start.toLocaleString('en-PK', { timeZone: 'Asia/Karachi', weekday: 'short', hour: '2-digit', minute: '2-digit' }),
+        });
+      }
+    } catch {
+      // RPC not available; just include slot anyway
+      candidates.push({
+        iso: start.toISOString(),
+        label: start.toLocaleString('en-PK', { timeZone: 'Asia/Karachi', weekday: 'short', hour: '2-digit', minute: '2-digit' }),
+      });
+    }
+  }
+
+  const providerName = ctx.candidateMap.get(args.provider_id)?.business_name ?? 'the provider';
+  if (candidates.length > 0) {
+    ctx.artifacts.push({
+      type: 'slot_suggestions',
+      provider_id: args.provider_id,
+      provider_name: providerName,
+      slots: candidates,
+    });
+  }
+
+  return {
+    found: candidates.length,
+    slots: candidates,
+    message: candidates.length > 0
+      ? `Found ${candidates.length} available slots for ${providerName}.`
+      : `No free slots found in the next 12 hours for ${providerName}.`,
+  };
+}
+
 function prettyService(slug: string): string {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-let stepCounter = 0;
-async function nextStep(_ctx: ToolDispatchContext): Promise<number> {
-  stepCounter += 1;
-  return stepCounter;
+async function nextStep(ctx: ToolDispatchContext): Promise<number> {
+  return nextStepIndex(ctx.runId);
 }
 
 // ---------------------------------------------------------------------------

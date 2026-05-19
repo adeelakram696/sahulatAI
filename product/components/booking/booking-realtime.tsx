@@ -81,38 +81,38 @@ export default function BookingRealtime({ initial }: { initial: BookingRow }) {
 
 function QuerySent({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null }) {
   return (
-    <main className="container max-w-2xl py-10">
-      <div className="rounded-lg border border-purple-200 bg-purple-50 dark:bg-purple-950/10 p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-block size-2 rounded-full bg-purple-500 animate-pulse" />
-          <h1 className="text-lg font-semibold">Query sent</h1>
+    <main className="container max-w-2xl py-10 space-y-4">
+      <div className="card-elevated p-6 border-l-4 border-l-violet-500">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-9 rounded-xl bg-violet-100 dark:bg-violet-950/30 flex items-center justify-center">
+            <span className="inline-block size-2.5 rounded-full bg-violet-500 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="font-display font-700 text-lg text-foreground">Query sent</h1>
+            <p className="text-xs text-muted-foreground">Awaiting provider response</p>
+          </div>
         </div>
-        <p className="text-sm">
-          We&apos;ve messaged <span className="font-medium">{provider?.business_name}</span> on Google via{' '}
-          <span className="font-medium uppercase">{booking.invitation_channel ?? 'mock'}</span>.
+        <p className="text-sm text-muted-foreground">
+          We&apos;ve messaged <span className="font-semibold text-foreground">{provider?.business_name}</span> via{' '}
+          <span className="font-semibold uppercase">{booking.invitation_channel ?? 'mock'}</span>.
+          They&apos;ll confirm once they tap the accept link.
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          They aren&apos;t on SahuliatAI yet — once they tap the accept link, this booking will switch to <em>confirmed</em>.
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-          <Info label="Service" value={booking.service_category.replace('_', ' ')} />
-          <Info label="Slot" value={new Date(booking.slot_start).toLocaleString()} />
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Info label="Service" value={booking.service_category.replace(/_/g, ' ')} />
+          <Info label="Slot" value={new Date(booking.slot_start).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })} />
           <Info label="Location" value={booking.location_text} />
           <Info label="Booking ID" value={booking.id.slice(0, 8)} />
         </div>
-
         {provider?.phone && (
-          <div className="mt-6 flex gap-3">
-            <a href={`tel:${provider.phone}`}
-              className="rounded-md border border-border px-3 py-2 text-sm">
+          <div className="mt-5">
+            <a href={`tel:${provider.phone}`} className="btn-ghost !text-xs !py-2 !px-3 gap-1.5">
               📞 Call {provider.phone}
             </a>
           </div>
         )}
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-6">
-        <Link href="/bookings" className="hover:underline">View all bookings</Link>
+      <p className="text-center text-xs text-muted-foreground">
+        <Link href="/bookings" className="hover:underline text-primary font-medium">← View all bookings</Link>
       </p>
     </main>
   );
@@ -121,8 +121,6 @@ function QuerySent({ booking, provider }: { booking: BookingRow; provider: { bus
 function InvitationPending({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null }) {
   const sentMs = new Date(booking.invitation_sent_at).getTime();
   const expiresMs = sentMs + 15 * 60 * 1000;
-  // Initialize to sentMs so server-rendered HTML matches the first client render
-  // (avoids hydration mismatch). useEffect kicks in on mount and starts ticking.
   const [now, setNow] = useState(sentMs);
   useEffect(() => {
     setNow(Date.now());
@@ -132,30 +130,47 @@ function InvitationPending({ booking, provider }: { booking: BookingRow; provide
   const remaining = Math.max(0, Math.floor((expiresMs - now) / 1000));
   const mm = Math.floor(remaining / 60);
   const ss = String(remaining % 60).padStart(2, '0');
+  const pct = Math.round((remaining / (15 * 60)) * 100);
 
   return (
-    <main className="container max-w-2xl py-10">
-      <div className="rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
-          <h1 className="text-lg font-semibold">Invitation sent</h1>
+    <main className="container max-w-2xl py-10 space-y-4">
+      <div className="card-elevated p-6 border-l-4 border-l-amber-400">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-9 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center">
+            <span className="inline-block size-2.5 rounded-full bg-amber-500 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="font-display font-700 text-lg text-foreground">Invitation sent</h1>
+            <p className="text-xs text-muted-foreground">Awaiting provider acceptance</p>
+          </div>
         </div>
-        <p className="text-sm">
-          We&apos;ve messaged <span className="font-medium">{provider?.business_name}</span> via{' '}
-          <span className="font-medium uppercase">{booking.invitation_channel}</span>.
+
+        <p className="text-sm text-muted-foreground mb-4">
+          We&apos;ve messaged <span className="font-semibold text-foreground">{provider?.business_name}</span> via{' '}
+          <span className="font-semibold uppercase">{booking.invitation_channel}</span>.
         </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Awaiting acceptance · expires in {mm}:{ss}
-        </p>
+
+        {/* Countdown */}
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 p-3 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Expires in</span>
+            <span className="text-sm font-bold font-mono text-amber-800 dark:text-amber-200">{mm}:{ss}</span>
+          </div>
+          <div className="h-1.5 bg-amber-200/60 dark:bg-amber-900/30 rounded-full overflow-hidden">
+            <div className="h-full bg-amber-400 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+
         {booking.invitation_channel === 'mock' && (
-          <div className="mt-4 rounded-md border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs">
-            <p className="font-medium mb-1">Demo Mode</p>
-            <p>WhatsApp / SMS aren&apos;t configured. The provider would receive a tokenized link to accept this booking.</p>
+          <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 dark:bg-amber-950/10 p-3 text-xs mb-4">
+            <p className="font-semibold text-amber-800 dark:text-amber-200 mb-0.5">Demo mode</p>
+            <p className="text-amber-700 dark:text-amber-300">WhatsApp/SMS not configured — the provider would receive a tokenized accept link.</p>
           </div>
         )}
-        <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-          <Info label="Service" value={booking.service_category.replace('_', ' ')} />
-          <Info label="Slot" value={new Date(booking.slot_start).toLocaleString()} />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Info label="Service" value={booking.service_category.replace(/_/g, ' ')} />
+          <Info label="Slot" value={new Date(booking.slot_start).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })} />
           <Info label="Location" value={booking.location_text} />
           <Info label="Booking ID" value={booking.id.slice(0, 8)} />
         </div>
@@ -163,66 +178,66 @@ function InvitationPending({ booking, provider }: { booking: BookingRow; provide
           <PriceBreakdownCard breakdown={booking.price_breakdown} complexity={booking.complexity} compact />
         )}
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-6">
-        <Link href="/bookings" className="hover:underline">View all bookings</Link>
+      <p className="text-center text-xs">
+        <Link href="/bookings" className="hover:underline text-primary font-medium">← View all bookings</Link>
       </p>
     </main>
   );
 }
 
 function Confirmed({ booking, provider, slotDate }: { booking: BookingRow; provider: { business_name: string; phone: string | null; rating_avg: number } | null; slotDate: Date }) {
-  const headline = {
-    confirmed: 'Booking confirmed',
-    reminded: 'Service today',
-    en_route: 'Provider on the way',
-    arrived: 'Provider has arrived',
-    in_progress: 'Service in progress',
-  }[booking.status] ?? 'Booking confirmed';
-
-  const subhead = {
-    confirmed: `${provider?.business_name} will arrive on ${slotDate.toLocaleString()}.`,
-    reminded: `${provider?.business_name} is scheduled for ${slotDate.toLocaleString()}.`,
-    en_route: `${provider?.business_name} is on the way. Track updates here.`,
-    arrived: `${provider?.business_name} has reached your location.`,
-    in_progress: `${provider?.business_name} has started the service.`,
-  }[booking.status] ?? `${provider?.business_name} will arrive on ${slotDate.toLocaleString()}.`;
+  const config = {
+    confirmed:    { icon: '✓', color: 'emerald', headline: 'Booking confirmed',     sub: `${provider?.business_name} will arrive on ${slotDate.toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}.` },
+    reminded:     { icon: '🔔', color: 'sky',     headline: 'Service today',          sub: `${provider?.business_name} is scheduled for ${slotDate.toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}.` },
+    en_route:     { icon: '🚗', color: 'indigo',  headline: 'Provider on the way',    sub: `${provider?.business_name} is heading to your location.` },
+    arrived:      { icon: '📍', color: 'violet',  headline: 'Provider has arrived',   sub: `${provider?.business_name} has reached your location.` },
+    in_progress:  { icon: '⚙️', color: 'primary', headline: 'Service in progress',   sub: `${provider?.business_name} has started the service.` },
+  }[booking.status] ?? { icon: '✓', color: 'emerald', headline: 'Booking confirmed', sub: '' };
 
   return (
-    <main className="container max-w-2xl py-10">
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/10 p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">✓</span>
-          <h1 className="text-lg font-semibold">{headline}</h1>
+    <main className="container max-w-2xl py-10 space-y-4">
+      <div className="card-elevated p-6 border-l-4 border-l-emerald-500">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="size-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg shrink-0">
+            {config.icon}
+          </div>
+          <div>
+            <h1 className="font-display font-700 text-xl text-foreground">{config.headline}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{config.sub}</p>
+          </div>
         </div>
-        <p className="text-sm">{subhead}</p>
+
         <ServiceTimeline booking={booking} />
-        <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-          <Info label="Service" value={booking.service_category.replace('_', ' ')} />
-          <Info label="Slot" value={slotDate.toLocaleString()} />
+
+        <div className="mt-5 grid grid-cols-2 gap-3 pt-5 border-t border-border">
+          <Info label="Service" value={booking.service_category.replace(/_/g, ' ')} />
+          <Info label="Slot" value={slotDate.toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })} />
           <Info label="Location" value={booking.location_text} />
-          <Info label="Status" value={booking.status} />
+          <Info label="Status" value={booking.status.replace(/_/g, ' ')} />
         </div>
+
         {booking.price_breakdown && (
           <PriceBreakdownCard breakdown={booking.price_breakdown} complexity={booking.complexity} />
         )}
         <SummaryCard booking={booking} provider={provider} />
-        <div className="mt-6 flex flex-wrap gap-3">
+
+        <div className="mt-5 pt-5 border-t border-border flex flex-wrap gap-2">
           <a href={buildGCalUrl(booking, provider)} target="_blank" rel="noreferrer"
-            className="rounded-md border border-border px-3 py-2 text-sm">
-            Add to Google Calendar
+            className="btn-ghost !text-xs !py-2 !px-3">
+            📅 Google Calendar
           </a>
           <a href={buildICS(booking, provider)} download={`booking-${booking.id.slice(0, 8)}.ics`}
-            className="rounded-md border border-border px-3 py-2 text-sm">
-            Download .ics
+            className="btn-ghost !text-xs !py-2 !px-3">
+            ⬇ Download .ics
           </a>
           <Link href={`/bookings/${booking.id}/dispute`}
-            className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-            Report an issue
+            className="btn-ghost !text-xs !py-2 !px-3 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20">
+            Report issue
           </Link>
         </div>
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-6">
-        <Link href="/bookings" className="hover:underline">View all bookings</Link>
+      <p className="text-center text-xs">
+        <Link href="/bookings" className="hover:underline text-primary font-medium">← View all bookings</Link>
       </p>
     </main>
   );
@@ -230,55 +245,78 @@ function Confirmed({ booking, provider, slotDate }: { booking: BookingRow; provi
 
 function Completed({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null }) {
   return (
-    <main className="container max-w-2xl py-10">
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h1 className="text-lg font-semibold mb-2">Service completed</h1>
-        <p className="text-sm">{provider?.business_name} marked this booking complete. Please rate your experience.</p>
+    <main className="container max-w-2xl py-10 space-y-4">
+      <div className="card-elevated p-6 border-l-4 border-l-emerald-500">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-lg">
+            🎉
+          </div>
+          <div>
+            <h1 className="font-display font-700 text-xl text-foreground">Service completed</h1>
+            <p className="text-sm text-muted-foreground">{provider?.business_name} marked this booking complete.</p>
+          </div>
+        </div>
+
         {booking.service_checklist && booking.service_checklist.length > 0 && (
-          <div className="mt-4 rounded-md border border-border bg-background p-3">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Service checklist</p>
-            <ul className="space-y-1 text-sm">
+          <div className="rounded-xl border border-border bg-muted/30 p-4 mb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Service checklist</p>
+            <ul className="space-y-2">
               {booking.service_checklist.map((c) => (
-                <li key={c.key} className="flex items-center gap-2">
-                  <span className={c.done ? 'text-emerald-600' : 'text-muted-foreground'}>{c.done ? '✓' : '○'}</span>
-                  <span>{c.label}</span>
+                <li key={c.key} className="flex items-center gap-2.5 text-sm">
+                  <span className={`size-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    c.done ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-muted text-muted-foreground'
+                  }`}>{c.done ? '✓' : '○'}</span>
+                  <span className={c.done ? 'text-foreground' : 'text-muted-foreground'}>{c.label}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
+
         {booking.price_breakdown && (
           <PriceBreakdownCard breakdown={booking.price_breakdown} complexity={booking.complexity} compact />
         )}
+
         <div className="mt-4 flex gap-2 flex-wrap">
-          <Link href={`/bookings?rate=${booking.id}`}
-            className="inline-block rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium">
-            Rate now
+          <Link href={`/bookings?rate=${booking.id}`} className="btn-primary !text-xs !py-2 !px-4">
+            Rate experience
           </Link>
-          <Link href={`/bookings/${booking.id}/dispute`}
-            className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent">
-            Report an issue
+          <Link href={`/bookings/${booking.id}/dispute`} className="btn-ghost !text-xs !py-2 !px-4">
+            Report issue
           </Link>
         </div>
       </div>
+      <p className="text-center text-xs">
+        <Link href="/bookings" className="hover:underline text-primary font-medium">← View all bookings</Link>
+      </p>
     </main>
   );
 }
 
-function Rejected({ booking, provider, status }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null; status: string }) {
+function Rejected({ booking: _booking, provider, status }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null; status: string }) {
   return (
-    <main className="container max-w-2xl py-10">
-      <div className="rounded-lg border border-rose-200 bg-rose-50 dark:bg-rose-950/10 p-6">
-        <h1 className="text-lg font-semibold mb-2">
-          {status === 'rejected' ? 'Provider unavailable' : 'Booking cancelled'}
-        </h1>
-        <p className="text-sm">
-          {provider?.business_name} didn&apos;t accept this invitation. Try another provider.
-        </p>
-        <Link href="/chat" className="mt-4 inline-block rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium">
+    <main className="container max-w-2xl py-10 space-y-4">
+      <div className="card-elevated p-6 border-l-4 border-l-rose-500">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-10 rounded-xl bg-rose-100 dark:bg-rose-950/30 flex items-center justify-center text-lg">
+            {status === 'rejected' ? '✗' : '✕'}
+          </div>
+          <div>
+            <h1 className="font-display font-700 text-xl text-foreground">
+              {status === 'rejected' ? 'Provider unavailable' : 'Booking cancelled'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {provider?.business_name} didn&apos;t accept. Try another provider.
+            </p>
+          </div>
+        </div>
+        <Link href="/chat" className="btn-primary !text-sm">
           Search again
         </Link>
       </div>
+      <p className="text-center text-xs">
+        <Link href="/bookings" className="hover:underline text-primary font-medium">← View all bookings</Link>
+      </p>
     </main>
   );
 }
@@ -286,23 +324,23 @@ function Rejected({ booking, provider, status }: { booking: BookingRow; provider
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm">{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-sm font-medium text-foreground capitalize">{value}</p>
     </div>
   );
 }
 
 function SummaryCard({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null; rating_avg: number } | null }) {
   return (
-    <div className="mt-6 rounded-md border border-border bg-background p-4">
-      <p className="text-xs font-semibold mb-2 text-muted-foreground">SUMMARY</p>
-      <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
-        <dt className="text-muted-foreground">Service Request</dt><dd>{booking.service_category.replace('_', ' ')}</dd>
-        <dt className="text-muted-foreground">Location</dt><dd>{booking.location_text}</dd>
-        <dt className="text-muted-foreground">Time</dt><dd>{new Date(booking.slot_start).toLocaleString()}</dd>
-        <dt className="text-muted-foreground">Provider</dt><dd>{provider?.business_name}</dd>
-        <dt className="text-muted-foreground">Booking</dt><dd>Slot booked · confirmation sent ✓</dd>
-        <dt className="text-muted-foreground">Follow-up</dt><dd>Reminder 1 h before</dd>
+    <div className="mt-5 rounded-xl border border-border bg-muted/30 p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Booking summary</p>
+      <dl className="grid grid-cols-2 gap-y-3 text-sm">
+        <dt className="text-muted-foreground">Service</dt><dd className="font-medium capitalize">{booking.service_category.replace(/_/g, ' ')}</dd>
+        <dt className="text-muted-foreground">Location</dt><dd className="font-medium">{booking.location_text}</dd>
+        <dt className="text-muted-foreground">Time</dt><dd className="font-medium">{new Date(booking.slot_start).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+        <dt className="text-muted-foreground">Provider</dt><dd className="font-medium">{provider?.business_name}</dd>
+        <dt className="text-muted-foreground">Status</dt><dd className="font-medium text-emerald-600">Confirmed ✓</dd>
+        <dt className="text-muted-foreground">Reminder</dt><dd className="font-medium">1 hour before</dd>
       </dl>
     </div>
   );
@@ -310,24 +348,37 @@ function SummaryCard({ booking, provider }: { booking: BookingRow; provider: { b
 
 function ServiceTimeline({ booking }: { booking: BookingRow }) {
   const steps = [
-    { key: 'confirmed', label: 'Booking confirmed', match: ['confirmed', 'reminded', 'en_route', 'arrived', 'in_progress', 'completed'], at: booking.invitation_sent_at },
-    { key: 'en_route', label: 'On the way', match: ['en_route', 'arrived', 'in_progress', 'completed'], at: booking.en_route_at },
-    { key: 'arrived', label: 'Arrived', match: ['arrived', 'in_progress', 'completed'], at: booking.arrived_at },
+    { key: 'confirmed', label: 'Booking confirmed',   match: ['confirmed', 'reminded', 'en_route', 'arrived', 'in_progress', 'completed'], at: booking.invitation_sent_at },
+    { key: 'en_route',  label: 'On the way',          match: ['en_route', 'arrived', 'in_progress', 'completed'], at: booking.en_route_at },
+    { key: 'arrived',   label: 'Arrived',             match: ['arrived', 'in_progress', 'completed'], at: booking.arrived_at },
     { key: 'in_progress', label: 'Service in progress', match: ['in_progress', 'completed'], at: null },
-    { key: 'completed', label: 'Completed', match: ['completed'], at: booking.completed_at },
+    { key: 'completed', label: 'Completed',           match: ['completed'], at: booking.completed_at },
   ];
   return (
-    <ol className="mt-5 space-y-3 border-l border-emerald-300/40 pl-4">
-      {steps.map((s) => {
+    <ol className="my-5 space-y-0">
+      {steps.map((s, idx) => {
         const reached = s.match.includes(booking.status);
         const isCurrent = (booking.status === s.key) || (booking.status === 'reminded' && s.key === 'confirmed');
+        const isLast = idx === steps.length - 1;
         return (
-          <li key={s.key} className="relative">
-            <span className={`absolute -left-[20px] top-1 size-3 rounded-full border-2 ${
-              reached ? (isCurrent ? 'bg-emerald-500 border-emerald-500 animate-pulse' : 'bg-emerald-500 border-emerald-500') : 'bg-background border-muted-foreground/30'
-            }`} />
-            <p className={`text-sm ${reached ? 'font-medium' : 'text-muted-foreground'}`}>{s.label}</p>
-            {s.at && reached && <p className="text-[10px] text-muted-foreground">{new Date(s.at).toLocaleTimeString()}</p>}
+          <li key={s.key} className="flex gap-3">
+            {/* Line + dot */}
+            <div className="flex flex-col items-center">
+              <div className={`size-3.5 rounded-full border-2 shrink-0 mt-0.5 ${
+                reached
+                  ? isCurrent
+                    ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)] animate-pulse'
+                    : 'bg-emerald-500 border-emerald-500'
+                  : 'bg-background border-border'
+              }`} />
+              {!isLast && <div className={`w-0.5 flex-1 my-1 ${reached ? 'bg-emerald-400/60' : 'bg-border'}`} />}
+            </div>
+            <div className={`pb-4 ${isLast ? '' : ''}`}>
+              <p className={`text-sm ${reached ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}</p>
+              {s.at && reached && (
+                <p className="text-[10px] text-muted-foreground">{new Date(s.at).toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+              )}
+            </div>
           </li>
         );
       })}
@@ -346,41 +397,42 @@ export function PriceBreakdownCard({ breakdown, complexity, compact }: { breakdo
   ].filter(Boolean) as { label: string; pct: number }[];
 
   return (
-    <div className={`${compact ? 'mt-4' : 'mt-6'} rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/10 dark:border-blue-900 p-4`}>
+    <div className={`${compact ? 'mt-4' : 'mt-5'} rounded-xl border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/15 p-4`}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-muted-foreground">ESTIMATED PRICE</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-sky-700 dark:text-sky-300">Estimated price</p>
         {complexity && (
-          <span className="text-[10px] uppercase tracking-wide bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+          <span className="text-[10px] uppercase tracking-wide bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full font-semibold">
             {complexity}
           </span>
         )}
       </div>
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="text-2xl font-semibold">{fmt(breakdown.total)}</span>
-        <span className="text-xs text-muted-foreground">final on completion</span>
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="font-display text-2xl font-700 text-sky-900 dark:text-sky-100">{fmt(breakdown.total)}</span>
+        <span className="text-xs text-sky-600 dark:text-sky-400">final on completion</span>
       </div>
-      <dl className="grid grid-cols-2 gap-y-1 text-xs">
-        <dt className="text-muted-foreground">Visit fee</dt><dd className="text-right">{fmt(breakdown.visit_fee)}</dd>
-        <dt className="text-muted-foreground">Labor ({breakdown.hours_estimate}h × {fmt(breakdown.hourly_rate)})</dt><dd className="text-right">{fmt(breakdown.labor_cost)}</dd>
+      <dl className="grid grid-cols-2 gap-y-1.5 text-xs">
+        <dt className="text-muted-foreground">Visit fee</dt><dd className="text-right font-medium">{fmt(breakdown.visit_fee)}</dd>
+        <dt className="text-muted-foreground">Labor ({breakdown.hours_estimate}h × {fmt(breakdown.hourly_rate)})</dt>
+        <dd className="text-right font-medium">{fmt(breakdown.labor_cost)}</dd>
         {breakdown.distance_cost > 0 && (
           <>
             <dt className="text-muted-foreground">Distance ({breakdown.distance_km.toFixed(1)} km)</dt>
-            <dd className="text-right">{fmt(breakdown.distance_cost)}</dd>
+            <dd className="text-right font-medium">{fmt(breakdown.distance_cost)}</dd>
           </>
         )}
-        <dt className="text-muted-foreground border-t border-blue-200/50 dark:border-blue-900/50 pt-1 mt-1">Base subtotal</dt>
-        <dd className="text-right border-t border-blue-200/50 dark:border-blue-900/50 pt-1 mt-1">{fmt(breakdown.base_subtotal)}</dd>
+        <dt className="text-muted-foreground border-t border-sky-200/60 dark:border-sky-900/40 pt-2 mt-1">Subtotal</dt>
+        <dd className="text-right font-semibold border-t border-sky-200/60 dark:border-sky-900/40 pt-2 mt-1">{fmt(breakdown.base_subtotal)}</dd>
         {adjRows.map((r) => (
           <div key={r.label} className="contents">
             <dt className="text-muted-foreground">{r.label}</dt>
-            <dd className={`text-right ${r.pct > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+            <dd className={`text-right font-medium ${r.pct > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
               {r.pct > 0 ? '+' : ''}{r.pct}%
             </dd>
           </div>
         ))}
       </dl>
       {breakdown.explanation?.en && !compact && (
-        <p className="mt-3 text-xs text-muted-foreground italic">{breakdown.explanation.en}</p>
+        <p className="mt-3 text-xs text-muted-foreground italic border-t border-sky-200/40 pt-3">{breakdown.explanation.en}</p>
       )}
     </div>
   );

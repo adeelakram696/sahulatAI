@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/setup.sh)",
+      "Bash(pnpm -v)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Danyal\\\\projects\\\\sahulatAI\\\\product\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm add *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const t = require\\('@tabler/icons-react'\\); const keys = Object.keys\\(t\\).filter\\(k => /broom|brick|wall|clean|mop|sweep|wash|wipe/i.test\\(k\\)\\); console.log\\(keys.join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const t = require\\('@tabler/icons-react'\\); const keys = Object.keys\\(t\\).filter\\(k => /brick|stone|mason|build|layer/i.test\\(k\\)\\); console.log\\(keys.join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const cfg = require\\('./tailwind.config.ts'\\); console.log\\(JSON.stringify\\(Object.keys\\(cfg.default?.theme?.extend ?? {}\\)\\)\\)\")"
+    ]
+  }
+}

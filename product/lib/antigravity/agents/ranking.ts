@@ -17,6 +17,7 @@ interface RankingInput {
   user_location: { point: { lat: number; lng: number }; address_text: string };
   customer_user_id?: string;
   complexity?: 'basic' | 'intermediate' | 'complex';
+  budget_preference?: 'low' | 'mid' | 'high' | null;
 }
 interface RankingOutput {
   top: RankedProvider[];
@@ -76,6 +77,7 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
   }
 
   const complexity = input.complexity ?? 'basic';
+  const budgetPref = input.budget_preference ?? input.intent.budget_preference ?? null;
   const userLang = input.intent.location.point ? 'en' : 'en'; // locale lives elsewhere; default en
 
   // 4) Score every candidate
@@ -101,8 +103,16 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
     // Factor 5: cancellation rate (inverse) — 10 points
     const fCancelInverse = Math.round(10 * (1 - c.cancellation_rate) * 10) / 10;
 
-    // Factor 6: price-fit — 10 points (neutral 5 if user didn't state)
-    const fPriceFit = 5; // we don't extract price prefs in intent yet; neutral
+    // Factor 6: price-fit — 10 points. Scored against user's budget preference.
+    // Provider price_band is keyed by service slug with a 'band' field: 'low'|'mid'|'high'.
+    const serviceSlugForPrice = input.intent.service_slug;
+    const providerBand = (c.price_band?.[serviceSlugForPrice] as { band?: string } | undefined)?.band ?? 'mid';
+    const fPriceFit = (() => {
+      if (!budgetPref) return 5; // neutral when user didn't express preference
+      if (budgetPref === providerBand) return 10; // exact match
+      const distance = Math.abs(['low', 'mid', 'high'].indexOf(budgetPref) - ['low', 'mid', 'high'].indexOf(providerBand));
+      return distance === 1 ? 5 : 2; // one tier off → 5, two tiers off → 2
+    })();
 
     // Factor 7: language match — 5 points
     const langs = c.languages ?? ['en'];
@@ -111,11 +121,15 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
     // Factor 8: returning customer / user preference — 5 points
     const fUserPref = priorProviderIds.has(c.id) ? 5 : 0;
 
-    // Specialization bonus when job is intermediate/complex AND provider has matching specs
+    // Specialization bonus when job is intermediate/complex AND provider has certs/specializations
     let fSpecBonus = 0;
-    if (complexity !== 'basic' && c.specializations.length > 0) {
-      // Heuristic: if provider has ≥1 specialization for this category, give bonus
-      fSpecBonus = complexity === 'complex' ? 5 : 3;
+    if (complexity !== 'basic') {
+      const hasCerts = (c as typeof c & { certifications?: string[] }).certifications?.length ?? 0;
+      const hasSpecs = c.specializations.length > 0;
+      if (hasCerts > 0 || hasSpecs) {
+        // Full bonus for complex + certified, partial for intermediate or spec-only
+        fSpecBonus = complexity === 'complex' ? (hasCerts > 0 ? 5 : 3) : (hasCerts > 0 ? 3 : 2);
+      }
     }
 
     const factors: FactorBreakdown = {
@@ -140,10 +154,7 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
       distance_m: distM,
       score,
       factors,
-      reasoning: {
-        en: `${distKm.toFixed(1)} km · ★${c.rating_avg.toFixed(1)} (${c.rating_count}) · on-time ${(c.on_time_score * 100).toFixed(0)}% · cancel ${(c.cancellation_rate * 100).toFixed(0)}% · ${avail.available ? 'available now' : 'next slot ' + (avail.next_available ?? 'soon')}`,
-        ur: `${distKm.toFixed(1)} کلومیٹر · ★${c.rating_avg.toFixed(1)} · بروقت ${(c.on_time_score * 100).toFixed(0)}% · ${avail.available ? 'دستیاب' : 'جلد'}`,
-      },
+      reasoning: buildReasoning(c, distKm, avail.available, avail.next_available),
       is_bookable: c.source === 'self_onboarded',
       available: avail.available,
     };
@@ -187,4 +198,29 @@ function decayForDays(days: number): number {
 function withinHours(aIso: string, bIso: string, hours: number): boolean {
   const diff = Math.abs(new Date(bIso).getTime() - new Date(aIso).getTime());
   return diff <= hours * 60 * 60 * 1000;
+}
+
+function buildReasoning(
+  c: ProviderCandidate,
+  _distKm: number,
+  available: boolean,
+  nextAvailable: string | null,
+): { en: string; ur: string } {
+  if (c.source !== 'self_onboarded') {
+    // Google Places: only show real Google rating — no synthetic on-time/cancel/availability
+    const ratingPart = c.rating_avg > 0 ? `★${c.rating_avg.toFixed(1)}` : 'No rating';
+    return {
+      en: `${ratingPart} · Listed on Google · contact to confirm availability`,
+      ur: `${ratingPart} · گوگل پر درج`,
+    };
+  }
+  // Self-onboarded: real stats only; distance is already shown in the UI card
+  const ratingPart = c.rating_count > 0
+    ? `★${c.rating_avg.toFixed(1)} (${c.rating_count} ${c.rating_count === 1 ? 'review' : 'reviews'})`
+    : 'No reviews yet';
+  const availPart = available ? 'available now' : `next slot ${nextAvailable ?? 'soon'}`;
+  return {
+    en: `${ratingPart} · on-time ${(c.on_time_score * 100).toFixed(0)}% · cancel ${(c.cancellation_rate * 100).toFixed(0)}% · ${availPart}`,
+    ur: `${ratingPart} · بروقت ${(c.on_time_score * 100).toFixed(0)}% · ${available ? 'دستیاب' : 'جلد'}`,
+  };
 }
