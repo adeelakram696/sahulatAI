@@ -26,7 +26,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-[0_-4px_12px_rgba(0,0,0,0.18)] md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="grid grid-cols-5">
@@ -37,9 +37,9 @@ export default function BottomNav() {
             <li key={item.key}>
               <Link
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] ${isActive ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] transition ${isActive ? 'text-white font-semibold' : 'text-white/75 hover:text-white'}`}
               >
-                <Icon className="size-5" />
+                <Icon className={`size-5 ${isActive ? '' : 'opacity-90'}`} />
                 <span>{item.label}</span>
               </Link>
             </li>

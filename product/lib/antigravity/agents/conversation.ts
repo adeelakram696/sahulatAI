@@ -20,6 +20,7 @@ import type { AgentContext, ProviderCandidate, RankedProvider } from '../types';
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
+  artifacts?: ConversationArtifact[];
 }
 
 export interface ConversationInput {
@@ -134,9 +135,21 @@ const TOOL_DECLARATIONS = [
 // ---------------------------------------------------------------------------
 function buildSystemPrompt(input: ConversationInput): string {
   const loc = input.user_location;
+  const knownProviders = collectKnownProviders(input.messages);
   return [
-    'You are SahuliatAI — a warm, conversational assistant that helps people in Pakistan book informal-economy services',
+    'You are SahuliatAI — a friendly, conversational MALE assistant who helps people in Pakistan book informal-economy services',
     '(plumbers, AC technicians, electricians, tutors, beauticians, carpenters, car wash, mobile repair).',
+    '',
+    'PERSONA:',
+    '- You are a MALE assistant. In Urdu / Roman Urdu use masculine first-person verb forms — e.g. "main aapki madad kar SAKTA hoon" (NOT "sakti hoon"), "main ne dhoonda" (NOT "dhoondi"), "mujhe lagta hai" is fine. Sentences about yourself like "I can…", "I think…", "I found…" must be masculine.',
+    '- Stay warm but professional, never flirtatious.',
+    '',
+    '🚨 NEVER LIE ABOUT TOOL CALLS — THIS IS THE MOST IMPORTANT RULE:',
+    '- You are ONLY allowed to say things like "message bhej diya", "booking confirmed", "request sent", "contacted", "ho gaya", "send kar diya", "تیار ہے" etc. if you ACTUALLY called book_appointment or contact_places_provider in THIS turn AND received a success result.',
+    '- If you do NOT have a concrete provider id (from the KNOWN PROVIDERS list below, or from a search_providers tool call YOU just made), you MUST NOT pretend you sent anything. Instead reply: "Pehle main aapke liye providers dhoondta hoon — ek minute" and call search_providers.',
+    '- If you have the id but the user has not given a time yet, ASK for the time before calling the tool. Do not assume.',
+    '- After a successful tool call, keep your text reply SHORT — the UI already renders a confirmation card with the booking id. Do NOT repeat the details.',
+    '- If a tool call returns an error, tell the user honestly and offer the next step. Never paper over a failure.',
     '',
     'IMPORTANT BEHAVIOR:',
     '- Reply in the SAME language the user uses. Detect English / Urdu (اردو) / Roman Urdu and mirror it.',
@@ -188,7 +201,37 @@ function buildSystemPrompt(input: ConversationInput): string {
     '- "abhi" = now',
     '- "parson" = day after tomorrow',
     'When the user gives a relative time, resolve to an ISO 8601 datetime in Asia/Karachi.',
-  ].join('\n');
+    '',
+    knownProviders ? 'KNOWN PROVIDERS FROM THIS CONVERSATION (use these EXACT ids when calling book_appointment / contact_places_provider — do NOT re-search):\n' + knownProviders : '',
+  ].filter(Boolean).join('\n');
+}
+
+function collectKnownProviders(messages: ChatMessage[]): string {
+  // Walk through history and accumulate all providers ever returned by search_providers.
+  // We keep the latest snapshot per provider id.
+  const seen = new Map<string, { name: string; source: string; service: string; phone?: string | null }>();
+  for (const m of messages) {
+    if (m.role !== 'model' || !m.artifacts) continue;
+    for (const a of m.artifacts) {
+      if ((a as { type?: string }).type !== 'providers') continue;
+      const art = a as unknown as { service_slug: string; bookable: { id: string; business_name: string; source: 'self_onboarded' | 'places_api'; phone?: string | null }[]; also_nearby: { id: string; business_name: string; source: 'self_onboarded' | 'places_api'; phone?: string | null }[] };
+      for (const p of [...(art.bookable ?? []), ...(art.also_nearby ?? [])]) {
+        seen.set(p.id, {
+          name: p.business_name,
+          source: p.source,
+          service: art.service_slug,
+          phone: p.phone,
+        });
+      }
+    }
+  }
+  if (seen.size === 0) return '';
+  const lines: string[] = [];
+  for (const [id, p] of seen) {
+    const tool = p.source === 'places_api' ? 'contact_places_provider(place_id=' : 'book_appointment(provider_id=';
+    lines.push(`  - ${p.name} [${p.service}] → ${tool}"${id}")`);
+  }
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -567,7 +610,22 @@ export async function runConversation(input: ConversationInput, ctx: AgentContex
 
   const artifacts: ConversationArtifact[] = [];
   const candidateMap = new Map<string, RankedProvider>();
-  const intentCache = { service_slug: null as string | null, time_iso: null as string | null };
+  // Rehydrate candidate map from any earlier providers artifacts in this thread
+  // so book_appointment / contact_places_provider can resolve ids the user
+  // references multiple turns after the original search.
+  let rehydratedServiceSlug: string | null = null;
+  for (const m of input.messages) {
+    if (m.role !== 'model' || !m.artifacts) continue;
+    for (const a of m.artifacts) {
+      if ((a as { type?: string }).type !== 'providers') continue;
+      const art = a as Extract<ConversationArtifact, { type: 'providers' }>;
+      rehydratedServiceSlug = art.service_slug ?? rehydratedServiceSlug;
+      for (const p of [...(art.bookable ?? []), ...(art.also_nearby ?? [])]) {
+        candidateMap.set(p.id, p);
+      }
+    }
+  }
+  const intentCache = { service_slug: rehydratedServiceSlug, time_iso: null as string | null };
   const toolCtx: ToolDispatchContext = {
     ...ctx,
     input,
@@ -578,7 +636,7 @@ export async function runConversation(input: ConversationInput, ctx: AgentContex
 
   // Tool-call loop — cap iterations to avoid runaway.
   let iterations = 0;
-  const MAX_ITERATIONS = 4;
+  const MAX_ITERATIONS = 6;
   let replyText = '';
 
   while (iterations < MAX_ITERATIONS) {
@@ -619,7 +677,32 @@ export async function runConversation(input: ConversationInput, ctx: AgentContex
   }
 
   if (!replyText) {
-    replyText = "Sorry — I got stuck. Could you rephrase what you're looking for?";
+    // Better fallback that doesn't make the user feel they have to start over —
+    // acknowledge what we last did and ask one short clarifying question.
+    const lastAction = artifacts[artifacts.length - 1]?.type;
+    if (lastAction === 'booking_confirmation' || lastAction === 'places_contact_sent') {
+      replyText = 'Done — your request has been sent. Aap ko aur kuch chahiye?';
+    } else if (lastAction === 'providers') {
+      replyText = 'Yeh providers mil gaye hain. Aap kis ko book karna chahenge — naam batayein ya time bhi share kar dein.';
+    } else {
+      replyText = 'Maaf kijiye, main thora confuse ho gaya. Kya aap dobara likh sakte hain — kis service ki zaroorat hai aur kab?';
+    }
+  }
+
+  // 🚨 Hallucination guard — if the model claims success but no real action
+  // happened in this run, rewrite the reply so we don't lie to the user.
+  const claimsSuccess = /(\bbooked\b|\bbook(ing)? confirmed\b|\bsent\b|\bcontacted\b|\bdispatched\b|bhej(?: di(?:ya|i)|d?diya|d?dia)|ho gay(a|i)|ho gaya hai|send kar di(?:ya|a)|نے بھیج|بھیج دیا|تیار ہے)/i.test(replyText);
+  const didAction = artifacts.some(
+    (a) => a.type === 'booking_confirmation' || a.type === 'places_contact_sent',
+  );
+  if (claimsSuccess && !didAction) {
+    ctx.logger.warn('hallucination guard tripped — reply claimed success but no action artifact emitted', { replyText });
+    const lastSearch = artifacts.find((a) => a.type === 'providers');
+    if (lastSearch || candidateMap.size > 0) {
+      replyText = 'Maaf kijiye, mujhse galti hui — actually message abhi tak nahi gaya. Kya aap provider ka naam aur time confirm karein ge taakay main abhi bhej doon?';
+    } else {
+      replyText = 'Maaf kijiye, mujhse galti hui — actually request abhi tak nahi gayi. Pehle main aapke liye providers dhoondta hoon — service aur location confirm karein.';
+    }
   }
 
   // Defensive: if the model called search_providers AND an action tool

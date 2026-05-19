@@ -9,7 +9,13 @@ import { callTool } from '@/lib/antigravity/tools';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const MessageSchema = z.object({ role: z.enum(['user', 'model']), content: z.string() });
+const MessageSchema = z.object({
+  role: z.enum(['user', 'model']),
+  content: z.string(),
+  // Optional artifacts on model turns so previous search results survive page reloads
+  // and re-feed into the next agent run (candidate map + system prompt).
+  artifacts: z.array(z.record(z.unknown())).optional(),
+});
 
 const Body = z.object({
   messages: z.array(MessageSchema).min(1),

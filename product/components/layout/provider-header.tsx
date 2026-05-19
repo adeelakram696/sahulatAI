@@ -18,11 +18,11 @@ export default async function ProviderHeader({
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="border-b border-border bg-background sticky top-0 z-10">
+    <header className="bg-gradient-to-r from-teal-700 to-emerald-700 text-white shadow-md sticky top-0 z-10">
       <div className="container max-w-4xl flex items-center justify-between py-3">
-        <Link href={user ? '/provider/dashboard' : '/'} className="font-semibold tracking-tight flex items-center gap-2">
+        <Link href={user ? '/provider/dashboard' : '/'} className="font-semibold tracking-tight flex items-center gap-2 text-white">
           SahuliatAI
-          <span className="text-[10px] uppercase tracking-wider rounded-full bg-primary/10 text-primary px-1.5 py-0.5">
+          <span className="text-[10px] uppercase tracking-wider rounded-full bg-white/20 text-white px-1.5 py-0.5">
             provider
           </span>
         </Link>
@@ -40,8 +40,8 @@ export default async function ProviderHeader({
         </nav>
       </div>
       {businessName && (
-        <div className="container max-w-4xl pb-2 text-xs text-muted-foreground">
-          Acting as <span className="font-medium text-foreground">{businessName}</span>
+        <div className="container max-w-4xl pb-2 text-xs text-white/80">
+          Acting as <span className="font-semibold text-white">{businessName}</span>
         </div>
       )}
     </header>
@@ -50,7 +50,7 @@ export default async function ProviderHeader({
 
 function NavLink({ href, label, active }: { href: string; label: string; active?: boolean }) {
   return (
-    <Link href={href} className={active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}>
+    <Link href={href} className={active ? 'font-semibold text-white' : 'text-white/80 hover:text-white'}>
       {label}
     </Link>
   );

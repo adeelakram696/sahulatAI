@@ -140,7 +140,10 @@ export default function ChatSurface({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: next.map((t) => ({ role: t.role, content: t.content })),
+          messages: next.map((t) => t.role === 'model'
+            ? { role: t.role, content: t.content, artifacts: t.artifacts ?? [] }
+            : { role: t.role, content: t.content },
+          ),
           selected_location_id: selectedLocId,
           locale: 'ur-Latn',
         }),

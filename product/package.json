@@ -8,6 +8,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
+    "setup": "bash scripts/setup.sh",
     "dev": "next dev --turbopack -p 3010",
     "prebuild": "node scripts/generate-assetlinks.mjs",
     "build": "next build",
@@ -21,6 +22,7 @@
     "test:integration": "vitest run --dir tests/integration",
     "db:link": "bash scripts/db-link.sh",
     "db:reset": "bash scripts/db-reset.sh",
+    "db:verify": "bash scripts/db-verify.sh",
     "db:push": "supabase db push",
     "db:types": "bash scripts/db-types.sh",
     "db:seed": "bash scripts/db-seed.sh",

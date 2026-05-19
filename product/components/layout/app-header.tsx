@@ -12,9 +12,9 @@ export default async function AppHeader({ active }: { active?: 'chat' | 'booking
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="border-b border-border bg-background sticky top-0 z-10">
+    <header className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md sticky top-0 z-10">
       <div className="container max-w-3xl flex items-center justify-between py-3">
-        <Link href={user ? '/chat' : '/'} className="font-semibold tracking-tight">
+        <Link href={user ? '/chat' : '/'} className="font-semibold tracking-tight text-white">
           SahuliatAI
         </Link>
         <nav className="flex items-center gap-4 text-sm">
@@ -44,7 +44,7 @@ export default async function AppHeader({ active }: { active?: 'chat' | 'booking
 function NavLink({ href, label, active, className }: { href: string; label: string; active?: boolean; className?: string }) {
   return (
     <Link href={href}
-      className={`${active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}${className ? ` ${className}` : ''}`}>
+      className={`${active ? 'font-semibold text-white' : 'text-white/80 hover:text-white'}${className ? ` ${className}` : ''}`}>
       {label}
     </Link>
   );

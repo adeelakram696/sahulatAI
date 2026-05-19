@@ -197,11 +197,35 @@ The qualitative win is in (a) the chat surface absorbing Roman Urdu / Urdu / Eng
 
 ## Running locally
 
+The fastest path is the bundled setup script — it checks prereqs, creates `.env.local` from the template, runs `pnpm install`, generates VAPID keys, optionally links Supabase + pushes migrations + seeds, and prints the next steps:
+
 ```bash
-pnpm install
-cp .env.example .env.local   # fill SUPABASE / GEMINI / GOOGLE_MAPS keys
-pnpm db:reset                # supabase migrations + seed
-pnpm dev                     # http://localhost:3000
+cd product
+bash scripts/setup.sh   # or: pnpm setup
 ```
+
+You'll be prompted to fill `.env.local` with your Supabase / Gemini / Google Maps keys before it continues. After setup finishes:
+
+```bash
+pnpm dev                # http://localhost:3010
+```
+
+Prerequisites (the script verifies these): **Node ≥ 20**, **pnpm ≥ 9**, the **Supabase CLI**, and **psql** (for seed). Install Supabase CLI via `brew install supabase/tap/supabase`; install `psql` via `brew install libpq && brew link --force libpq`.
+
+Re-running `scripts/setup.sh` is safe — every step skips if already done.
+
+### Deployment by teammates (no owner login required)
+
+**Recommended — Git-based auto-deploy.** Connect the GitHub repo to Vercel once (Vercel Dashboard → Project → Settings → Git). Every push to a branch produces a preview URL; merges to `main` go to production. Teammates need GitHub push access only — no Vercel login, no CLI, no token.
+
+**Alternative — CLI deploy with a shared token.** Owner generates a scoped token at <https://vercel.com/account/tokens>, teammate pastes it into `.env.local` as `VERCEL_TOKEN=...`, then:
+
+```bash
+SKIP_DB_PUSH=1 pnpm deploy:preview
+```
+
+`SKIP_DB_PUSH=1` is recommended for teammates so only the owner pushes migrations. Run `pnpm db:verify` before deploying to catch schema drift early.
+
+**Migrations** are owner-only by default. If a teammate's PR needs a new migration, they author the SQL file under `supabase/migrations/`, push the branch, and ping the owner to apply via `pnpm db:push`. Everyone else stays in read-only DB mode.
 
 See `tech_plan/` for the per-feature implementation notes and `scope/` for the product brief.

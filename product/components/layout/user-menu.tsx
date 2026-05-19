@@ -45,7 +45,7 @@ export default function UserMenu({
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center justify-center rounded-full size-8 bg-secondary text-secondary-foreground text-xs font-semibold hover:bg-muted">
+        className="inline-flex items-center justify-center rounded-full size-8 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/30 transition">
         {initials}
       </button>
       {open && (
