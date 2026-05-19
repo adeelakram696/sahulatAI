@@ -4,6 +4,8 @@ node_modules
 out
 .env
 .env.local
+.env.prod
+.env.preview
 .env*.local
 .vercel
 *.log

@@ -3,18 +3,27 @@
 # Deploy SahuliatAI to Vercel.
 #
 # Usage:
-#   bash scripts/deploy.sh           # preview deploy
-#   bash scripts/deploy.sh prod      # production deploy
+#   bash scripts/deploy.sh           # preview deploy -> reads .env.preview, fallback .env.local
+#   bash scripts/deploy.sh prod      # production  -> reads .env.prod,    fallback .env.local
+#
+# Env file precedence per target:
+#   prod      -> .env.prod      (else .env.local)
+#   preview   -> .env.preview   (else .env.local)
+#
+# Each env file is the FULL set of vars for that environment (Supabase keys,
+# Gemini key, NEXT_PUBLIC_APP_URL, REMINDERS_FIRE_SECRET, VAPID, etc.).
+# All env files are gitignored.
 #
 # What this script does, in order:
-#   1. Loads .env.local + checks required vars
-#   2. pnpm typecheck (fast-fail)
-#   3. pnpm build (local sanity check)
-#   4. supabase db push (apply any unapplied migrations to your remote project)
-#   5. vercel link / vercel pull (if not already linked)
-#   6. Pushes Vercel env vars from .env.local for the target environment
-#   7. vercel deploy
-#   8. Prints post-deploy reminders (pg_cron URL update + Supabase Auth URLs)
+#   1. Picks + loads the right env file
+#   2. Validates required vars are present
+#   3. pnpm typecheck (fast-fail)
+#   4. pnpm build (local sanity check)
+#   5. supabase db push (apply any unapplied migrations)
+#   6. vercel link if not already linked
+#   7. Pushes every env var from the chosen file to Vercel for the target env
+#   8. vercel deploy
+#   9. Prints post-deploy reminders (pg_cron URL, Supabase Auth URLs)
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,53 +35,83 @@ if [ "$TARGET" != "preview" ] && [ "$TARGET" != "prod" ] && [ "$TARGET" != "prod
 fi
 [ "$TARGET" = "production" ] && TARGET=prod
 
+# ---------- 1. Pick env file ----------
+if [ "$TARGET" = "prod" ]; then
+  ENV_FILE=".env.prod"
+else
+  ENV_FILE=".env.preview"
+fi
+
+if [ ! -f "$ENV_FILE" ]; then
+  if [ -f .env.local ]; then
+    echo "!! $ENV_FILE not found; falling back to .env.local"
+    echo "   (Recommended: create $ENV_FILE so prod and local are isolated.)"
+    ENV_FILE=".env.local"
+  else
+    echo "!! No env file found. Create $ENV_FILE (or .env.local) first."
+    exit 1
+  fi
+fi
+
 echo "============================================"
 echo " SahuliatAI deploy -> $TARGET"
+echo " Using env file:    $ENV_FILE"
 echo "============================================"
 
-# ---------- 1. Load env ----------
-if [ ! -f .env.local ]; then
-  echo "!! .env.local missing. Copy .env.example, fill in values, then re-run."
-  exit 1
-fi
-set -a; source .env.local; set +a
+set -a; source "$ENV_FILE"; set +a
 
-REQUIRED=(NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY GOOGLE_GEMINI_API_KEY REMINDERS_FIRE_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY NEXT_PUBLIC_VAPID_PUBLIC_KEY)
+# ---------- 2. Validate required vars ----------
+REQUIRED=(NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY GOOGLE_GEMINI_API_KEY REMINDERS_FIRE_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY NEXT_PUBLIC_VAPID_PUBLIC_KEY NEXT_PUBLIC_APP_URL)
 MISSING=()
 for v in "${REQUIRED[@]}"; do
   if [ -z "${!v:-}" ]; then MISSING+=("$v"); fi
 done
 if [ ${#MISSING[@]} -gt 0 ]; then
-  echo "!! Missing required env vars in .env.local:"
+  echo "!! Missing required env vars in $ENV_FILE:"
   for v in "${MISSING[@]}"; do echo "   - $v"; done
   exit 1
 fi
 echo "OK env vars present"
 
-# ---------- 2. Type check ----------
+# ---------- 3. Type check ----------
 echo "-> Type-checking ..."
 pnpm typecheck
 
-# ---------- 3. Local build ----------
-echo "-> Local production build (fail-fast sanity check) ..."
+# ---------- 4. Local build ----------
+# Temporarily hide .env.local while building so Next.js only reads the values
+# we already exported from $ENV_FILE. (Vars in process.env already take
+# priority, but this makes the build log honest about which file was used.)
+RESTORE_LOCAL=0
+if [ "$ENV_FILE" != ".env.local" ] && [ -f .env.local ]; then
+  mv .env.local .env.local.deploybak
+  RESTORE_LOCAL=1
+  trap 'if [ "$RESTORE_LOCAL" = "1" ] && [ -f .env.local.deploybak ]; then mv .env.local.deploybak .env.local; fi' EXIT
+fi
+
+echo "-> Local production build using $ENV_FILE (fail-fast sanity check) ..."
 pnpm build
 
-# ---------- 4. DB migrations ----------
+# Restore early (the trap also handles error paths)
+if [ "$RESTORE_LOCAL" = "1" ] && [ -f .env.local.deploybak ]; then
+  mv .env.local.deploybak .env.local
+  RESTORE_LOCAL=0
+fi
+
+# ---------- 5. DB migrations ----------
 echo "-> Pushing DB migrations to Supabase ..."
 if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && [ ! -f "$HOME/.supabase/access-token" ]; then
   echo "   Supabase CLI is not authenticated."
-  echo "   Run: pnpm exec supabase login   (or set SUPABASE_ACCESS_TOKEN)"
+  echo "   Run: pnpm exec supabase login   (or set SUPABASE_ACCESS_TOKEN in $ENV_FILE)"
   exit 1
 fi
 pnpm exec supabase db push
 
-# ---------- 5. Vercel CLI auth ----------
+# ---------- 6. Vercel CLI auth + link ----------
 if ! pnpm exec vercel whoami >/dev/null 2>&1; then
   echo "-> Logging into Vercel ..."
   pnpm exec vercel login
 fi
 
-# ---------- 6. Link + push env ----------
 if [ ! -d .vercel ]; then
   echo "-> Linking this directory to a Vercel project ..."
   pnpm exec vercel link
@@ -81,12 +120,12 @@ fi
 VENV="preview"
 [ "$TARGET" = "prod" ] && VENV="production"
 
+# ---------- 7. Sync env vars to Vercel ----------
 echo "-> Syncing env vars to Vercel ($VENV) ..."
 push_env() {
   local key="$1"
   local val="${!key:-}"
   if [ -z "$val" ]; then return; fi
-  # remove existing (best-effort) then add fresh
   pnpm exec vercel env rm "$key" "$VENV" -y >/dev/null 2>&1 || true
   printf '%s' "$val" | pnpm exec vercel env add "$key" "$VENV" >/dev/null
   echo "   . $key"
@@ -97,7 +136,7 @@ for v in "${REQUIRED[@]}"; do push_env "$v"; done
 # Optional
 for v in \
   GOOGLE_MAPS_SERVER_KEY NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY \
-  NEXT_PUBLIC_USE_GOOGLE_APIS NEXT_PUBLIC_APP_URL \
+  NEXT_PUBLIC_USE_GOOGLE_APIS \
   GEMINI_MODEL \
   WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN \
   TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER \
@@ -105,43 +144,43 @@ for v in \
   push_env "$v"
 done
 
-# ---------- 7. Deploy ----------
+# ---------- 8. Deploy ----------
 if [ "$TARGET" = "prod" ]; then
   echo "-> Deploying to PRODUCTION ..."
-  DEPLOY_URL=$(pnpm exec vercel --prod --yes 2>&1 | tee /dev/tty | tail -n 1 | tr -d '[:space:]')
+  pnpm exec vercel --prod --yes
 else
   echo "-> Deploying preview ..."
-  DEPLOY_URL=$(pnpm exec vercel --yes 2>&1 | tee /dev/tty | tail -n 1 | tr -d '[:space:]')
+  pnpm exec vercel --yes
 fi
 
-echo ""
-echo "============================================"
-echo " DEPLOYED: $DEPLOY_URL"
-echo "============================================"
-
-# ---------- 8. Post-deploy reminders ----------
+# ---------- 9. Post-deploy reminders ----------
+DEPLOY_URL="$NEXT_PUBLIC_APP_URL"
 cat <<EOF
 
-  POST-DEPLOY CHECKLIST
-  ----------------------------------------------
-  1. Update pg_cron app_config so reminders POST to the deployed URL.
-     In Supabase SQL Editor, run:
-        update public.app_config
-        set value = '$DEPLOY_URL/api/reminders/fire', updated_at = now()
-        where key = 'reminders_fire_url';
+============================================
+ DEPLOY COMPLETE
+============================================
+ Target env file used: $ENV_FILE
+ NEXT_PUBLIC_APP_URL:  $DEPLOY_URL
 
-  2. Update Supabase Auth URLs (Dashboard -> Authentication -> URL Configuration):
-        Site URL:        $DEPLOY_URL
-        Redirect URLs:   $DEPLOY_URL/**
+POST-DEPLOY CHECKLIST
+----------------------------------------------
+ 1. Update pg_cron so reminders POST to the deployed URL.
+    In Supabase SQL Editor:
+       update public.app_config
+       set value = '${DEPLOY_URL}/api/reminders/fire', updated_at = now()
+       where key = 'reminders_fire_url';
 
-  3. If you set NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY with HTTP referer restriction,
-     add '$DEPLOY_URL/*' to the allowed referers in Google Cloud Console.
+ 2. Supabase Auth -> URL Configuration:
+       Site URL:        ${DEPLOY_URL}
+       Redirect URLs:   ${DEPLOY_URL}/**
+                        http://localhost:3010/**     (keep for local dev)
 
-  4. NEXT_PUBLIC_APP_URL in Vercel env -> should be '$DEPLOY_URL' for prod deploys.
-     (Re-deploy after updating so the bundle picks it up.)
+ 3. If you use Google Maps browser key with HTTP-referer restriction,
+    add '${DEPLOY_URL}/*' to the allowed referers.
 
-  5. Smoke test:
-        - Sign in as ayesha@example.com / Demo!1234 on the new URL
-        - Run the canonical Roman Urdu query
-        - Open a second window as ali@example.com -> /provider/dashboard
+ 4. Smoke test:
+       - Sign in as ayesha@example.com / Demo!1234 on ${DEPLOY_URL}
+       - Run the canonical Roman Urdu query
+       - Open ${DEPLOY_URL}/provider/dashboard as ali@example.com in another window
 EOF

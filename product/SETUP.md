@@ -179,32 +179,55 @@ Open two browser windows (one for customer, one for provider) to see the realtim
 
 ## 6. Deploy to Vercel
 
-### First-time setup
+### Env file strategy
+
+Each environment has its own gitignored env file. The deploy script reads the right one based on target:
+
+| Command | Env file used | Purpose |
+|---|---|---|
+| `pnpm dev` | `.env.local` | Local dev (`NEXT_PUBLIC_APP_URL=http://localhost:3010`) |
+| `pnpm deploy:preview` | `.env.preview` (fallback `.env.local`) | Vercel preview deploys |
+| `pnpm deploy:prod` | `.env.prod` (fallback `.env.local`) | Vercel production deploys |
+
+Each file is the FULL set of vars for that environment. Typical differences:
+- `NEXT_PUBLIC_APP_URL` — localhost vs `https://your-prod.vercel.app`
+- `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` — separate keys with different referer restrictions (optional)
+- Everything else (Supabase, Gemini, VAPID, REMINDERS_FIRE_SECRET) can be identical if you're using one Supabase project.
+
+**Set up the prod env file:**
+```bash
+cp .env.local .env.prod
+# Edit .env.prod and change NEXT_PUBLIC_APP_URL to your prod Vercel URL
+# Optionally change NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY if you have a separate prod key
+```
+
+### First-time Vercel setup
 ```bash
 # 1. (one-time) sign in to Vercel from this terminal
 pnpm exec vercel login
 
-# 2. (one-time) link this folder to a Vercel project (creates a new one if none exists)
+# 2. (one-time) link this folder to a Vercel project
 pnpm exec vercel link
 ```
 
 ### Every deploy
 ```bash
-# Preview URL (changes per commit, good for testing)
+# Preview URL — uses .env.preview (or .env.local fallback)
 pnpm deploy:preview
 
-# Production URL (your final demo URL)
+# Production URL — uses .env.prod (or .env.local fallback)
 pnpm deploy:prod
 ```
 
 The `deploy.sh` script does **everything** in order:
-1. Validates required env vars from `.env.local`.
-2. Runs `pnpm typecheck` and `pnpm build` locally as a fail-fast sanity check.
-3. Pushes any new DB migrations to Supabase via `supabase db push`.
-4. Logs into Vercel + links the project if needed.
-5. **Pushes every env var from your `.env.local` to Vercel** for the chosen environment (preview or production). Skips empty optional ones (WhatsApp / Twilio).
-6. Runs `vercel deploy`.
-7. Prints a **post-deploy checklist** with the actual deployed URL — including the exact SQL to update `pg_cron`'s `reminders_fire_url`.
+1. Picks the right env file based on target (`prod` → `.env.prod`, else `.env.preview`).
+2. Validates required vars; bails with a friendly list if any are missing.
+3. Runs `pnpm typecheck` and `pnpm build` locally as a fail-fast sanity check.
+4. Pushes any new DB migrations to Supabase via `supabase db push`.
+5. Logs into Vercel + links the project if needed.
+6. **Pushes every env var from the chosen file to Vercel** for the target environment.
+7. Runs `vercel deploy` (`--prod` for production).
+8. Prints a **post-deploy checklist** with the actual deployed URL.
 
 ### Post-deploy reminders (the script tells you these)
 After deploying:
