@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/setup.sh)",
+      "Bash(pnpm -v)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Danyal\\\\projects\\\\sahulatAI\\\\product\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(pnpm tsc *)"
+    ]
+  }
+}

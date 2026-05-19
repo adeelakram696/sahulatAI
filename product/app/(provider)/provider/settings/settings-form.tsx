@@ -21,6 +21,8 @@ interface Provider {
   service_radius_km: number | null;
   published: boolean;
   languages: string[];
+  certifications?: string[] | null;
+  tools_required?: string[] | null;
 }
 
 export default function ProviderSettingsForm({ initial }: { initial: Provider }) {
@@ -32,6 +34,8 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
   const [cats, setCats] = useState<string[]>(initial.categories ?? []);
   const [radiusKm, setRadiusKm] = useState<number>(initial.service_radius_km ?? 5);
   const [published, setPublished] = useState(initial.published);
+  const [certifications, setCertifications] = useState((initial.certifications ?? []).join(', '));
+  const [toolsRequired, setToolsRequired] = useState((initial.tools_required ?? []).join(', '));
   const [pending, setPending] = useState(false);
 
   const toggle = (s: string) =>
@@ -43,6 +47,7 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
     if (cats.length === 0) return toast.error('Pick at least one category');
     setPending(true);
     const supabase = createClient();
+    const splitCsv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
     const { error } = await supabase
       .from('providers')
       .update({
@@ -53,6 +58,8 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
         categories: cats,
         service_radius_km: radiusKm,
         published,
+        certifications: splitCsv(certifications),
+        tools_required: splitCsv(toolsRequired),
         price_band: Object.fromEntries(cats.map((c) => [c, { min: 1000, max: 3000 }])),
       })
       .eq('id', initial.id);
@@ -107,6 +114,18 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
         </label>
       </Field>
 
+      <Field label="Certifications (comma-separated)" hint="e.g. Gas Safe, EPA 608, NEC Wiring. Boosts your ranking for complex jobs.">
+        <input value={certifications} onChange={(e) => setCertifications(e.target.value)}
+          placeholder="Gas Safe, EPA 608"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+      </Field>
+
+      <Field label="Specialist tools (comma-separated)" hint="Tools you carry — shown to customers and used for job-complexity matching.">
+        <input value={toolsRequired} onChange={(e) => setToolsRequired(e.target.value)}
+          placeholder="vacuum pump, multimeter, pipe cutter"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+      </Field>
+
       <Field label="Status">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
@@ -122,10 +141,11 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm font-medium mb-1.5">{label}</label>
+      {hint && <p className="text-xs text-muted-foreground mb-1.5">{hint}</p>}
       {children}
     </div>
   );

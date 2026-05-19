@@ -10,7 +10,7 @@ export default async function ProviderSettingsPage() {
 
   const { data: providers } = await supabase
     .from('providers')
-    .select('id, business_name, phone, phone_verified, whatsapp_opt_in, sms_opt_in, categories, service_radius_km, weekly_hours, published, languages')
+    .select('id, business_name, phone, phone_verified, whatsapp_opt_in, sms_opt_in, categories, service_radius_km, weekly_hours, published, languages, certifications, tools_required')
     .eq('owner_user_id', user.id)
     .limit(1);
   if (!providers || providers.length === 0) redirect('/chat');

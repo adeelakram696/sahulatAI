@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill /PID 20952 /F)",
+      "PowerShell(Stop-Process -Id 20952 -Force)"
+    ]
+  }
+}

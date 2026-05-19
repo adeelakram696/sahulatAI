@@ -25,7 +25,9 @@ type Provider = {
 type Artifact =
   | { type: 'providers'; service_slug: string; requested_time_iso: string | null; bookable: Provider[]; also_nearby: Provider[] }
   | { type: 'booking_confirmation'; booking_id: string; provider_name: string; slot_iso: string; invitation_channel: string; complexity?: string | null; price_breakdown?: PriceBreakdown | null }
-  | { type: 'places_contact_sent'; place_id: string; place_name: string; channel: string; message_body: string; booking_id?: string; slot_iso?: string };
+  | { type: 'places_contact_sent'; place_id: string; place_name: string; channel: string; message_body: string; booking_id?: string; slot_iso?: string }
+  | { type: 'clarification'; question: string; options: string[] }
+  | { type: 'slot_suggestions'; provider_id: string; provider_name: string; slots: Array<{ iso: string; label: string }> };
 
 type ChatTurn =
   | { role: 'user'; content: string }
@@ -184,7 +186,7 @@ export default function ChatSurface({
             <Empty onPickSuggestion={(s) => setInput(s)} />
           ) : (
             <div className="space-y-4">
-              {turns.map((t, i) => <TurnView key={i} turn={t} />)}
+              {turns.map((t, i) => <TurnView key={i} turn={t} onChipSelect={send} isLast={i === turns.length - 1} pending={pending} />)}
               {pending && <ThinkingBubble />}
             </div>
           )}
@@ -249,7 +251,7 @@ function LocationChip({ locations, selectedId, onChange }: {
   );
 }
 
-function TurnView({ turn }: { turn: ChatTurn }) {
+function TurnView({ turn, onChipSelect, isLast, pending }: { turn: ChatTurn; onChipSelect: (s: string) => void; isLast: boolean; pending: boolean }) {
   if (turn.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -259,6 +261,8 @@ function TurnView({ turn }: { turn: ChatTurn }) {
       </div>
     );
   }
+  // Only show interactive chips on the last model turn and when not awaiting a response.
+  const showChips = isLast && !pending;
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%] space-y-3">
@@ -267,7 +271,7 @@ function TurnView({ turn }: { turn: ChatTurn }) {
             <p className="text-sm whitespace-pre-wrap">{turn.content}</p>
           </div>
         )}
-        {turn.artifacts?.map((a, i) => <ArtifactView key={i} artifact={a} />)}
+        {turn.artifacts?.map((a, i) => <ArtifactView key={i} artifact={a} onChipSelect={showChips ? onChipSelect : undefined} />)}
       </div>
     </div>
   );
@@ -285,10 +289,12 @@ function ThinkingBubble() {
   );
 }
 
-function ArtifactView({ artifact }: { artifact: Artifact }) {
+function ArtifactView({ artifact, onChipSelect }: { artifact: Artifact; onChipSelect?: (s: string) => void }) {
   if (artifact.type === 'providers') return <ProvidersArtifact a={artifact} />;
   if (artifact.type === 'booking_confirmation') return <BookingConfirmedArtifact a={artifact} />;
   if (artifact.type === 'places_contact_sent') return <PlacesContactSentArtifact a={artifact} />;
+  if (artifact.type === 'clarification') return <ClarificationArtifact a={artifact} onSelect={onChipSelect} />;
+  if (artifact.type === 'slot_suggestions') return <SlotSuggestionsArtifact a={artifact} onSelect={onChipSelect} />;
   return null;
 }
 
@@ -392,6 +398,48 @@ function BookingConfirmedArtifact({ a }: { a: Extract<Artifact, { type: 'booking
       {a.price_breakdown && (
         <PriceBreakdownCard breakdown={a.price_breakdown} complexity={a.complexity} compact />
       )}
+    </div>
+  );
+}
+
+function ClarificationArtifact({ a, onSelect }: { a: Extract<Artifact, { type: 'clarification' }>; onSelect?: (s: string) => void }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+      <p className="text-sm font-medium">{a.question}</p>
+      <div className="flex flex-wrap gap-2">
+        {a.options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onSelect?.(opt)}
+            disabled={!onSelect}
+            className="rounded-full border border-primary/40 bg-primary/5 text-primary px-3 py-1 text-xs font-medium hover:bg-primary/15 disabled:opacity-50 transition"
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SlotSuggestionsArtifact({ a, onSelect }: { a: Extract<Artifact, { type: 'slot_suggestions' }>; onSelect?: (s: string) => void }) {
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/10 p-3 space-y-2">
+      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+        That slot isn&apos;t available — here are the next free times for {a.provider_name}:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {a.slots.map((slot) => (
+          <button
+            key={slot.iso}
+            onClick={() => onSelect?.(`Book ${a.provider_name} at ${slot.label}`)}
+            disabled={!onSelect}
+            className="rounded-full border border-amber-400/40 bg-white dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 px-3 py-1 text-xs font-medium hover:bg-amber-100 disabled:opacity-50 transition"
+          >
+            {slot.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
