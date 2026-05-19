@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { BrandMark } from '@/components/ui/brand-mark';
 import UserMenu from './user-menu';
 
 export default async function ProviderHeader({
@@ -17,15 +18,8 @@ export default async function ProviderHeader({
       <div className="container max-w-4xl flex h-14 items-center justify-between gap-4">
 
         {/* Brand */}
-        <Link href={user ? '/provider/dashboard' : '/'} className="flex items-center gap-2 shrink-0 group">
-          <div className="size-7 rounded-lg bg-brand-gradient flex items-center justify-center shadow-primary-sm">
-            <svg viewBox="0 0 20 20" fill="none" className="size-4 text-white" aria-hidden>
-              <path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2Zm0 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm-3 8.5a3 3 0 0 1 6 0H7Z" fill="currentColor"/>
-            </svg>
-          </div>
-          <span className="font-display font-700 text-[15px] tracking-tight text-foreground group-hover:text-primary transition-colors">
-            SahuliatAI
-          </span>
+        <Link href={user ? '/provider/dashboard' : '/'} className="group flex items-center gap-2 shrink-0">
+          <BrandMark size="sm" />
           <span className="hidden sm:inline-flex text-[10px] font-semibold uppercase tracking-wider rounded-full border border-primary/30 bg-primary/8 text-primary px-2 py-0.5">
             Provider
           </span>
