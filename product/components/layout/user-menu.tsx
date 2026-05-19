@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 
-export default function UserMenu({ email }: { email: string }) {
+export default function UserMenu({
+  email,
+  extraLinks = [],
+}: {
+  email: string;
+  extraLinks?: Array<{ href: string; label: string }>;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const router = useRouter();
@@ -48,10 +54,13 @@ export default function UserMenu({ email }: { email: string }) {
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Signed in as</p>
             <p className="text-xs truncate">{email}</p>
           </div>
+          {extraLinks.map((l) => (
+            <MenuLink key={l.href} href={l.href} label={l.label} onClick={() => setOpen(false)} />
+          ))}
           <MenuLink href="/profile/locations" label="Locations" onClick={() => setOpen(false)} />
           <MenuLink href="/profile/security" label="Change password" onClick={() => setOpen(false)} />
           <button onClick={logout} disabled={pending}
-            className="block w-full text-left px-3 py-2 hover:bg-accent text-rose-600 disabled:opacity-50">
+            className="block w-full text-left px-3 py-2 hover:bg-accent text-rose-600 disabled:opacity-50 border-t border-border mt-1">
             {pending ? 'Signing out…' : 'Sign out'}
           </button>
         </div>

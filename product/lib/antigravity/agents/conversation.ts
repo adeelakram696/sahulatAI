@@ -49,10 +49,14 @@ export type ConversationArtifact =
       provider_name: string;
       slot_iso: string;
       invitation_channel: string;
+      complexity?: 'basic' | 'intermediate' | 'complex' | null;
+      price_breakdown?: Record<string, unknown> | null;
     }
   | {
       type: 'places_contact_sent';
       place_id: string;
+      booking_id?: string;
+      slot_iso?: string;
       place_name: string;
       channel: 'sms' | 'email' | 'mock';
       message_body: string;
@@ -82,6 +86,8 @@ const TOOL_DECLARATIONS = [
         service_slug: { type: 'string', enum: SERVICE_SLUGS as unknown as string[], description: 'Closest matching service category.' },
         time_iso: { type: 'string', description: 'ISO datetime of when the user wants the service. Leave empty if unspecified.' },
         notes: { type: 'string', description: 'Any specific need extracted from the conversation (e.g. "water tank cleaning", "screen replacement").' },
+        complexity: { type: 'string', enum: ['basic', 'intermediate', 'complex'], description: 'Job complexity. basic = single task, intermediate = 1-2 hours, complex = multi-hour / specialist. Drives matching + pricing.' },
+        urgency: { type: 'string', enum: ['now', 'today', 'tomorrow', 'this_week'], description: 'How urgent the request is. Affects pricing.' },
       },
       required: ['service_slug'],
     },
@@ -100,6 +106,8 @@ const TOOL_DECLARATIONS = [
           description:
             'Short (≤ 200 chars) summary of the customer\'s problem, written in the customer\'s language. Examples: "AC cooling nahi kar raha, gas issue lag raha hai", "Pipe leak in kitchen", "Water tank not cleaned in 6 months". Leave empty ONLY if the customer truly gave no context.',
         },
+        complexity: { type: 'string', enum: ['basic', 'intermediate', 'complex'], description: 'Job complexity. basic = single task, intermediate = 1-2 hours, complex = multi-hour / specialist. Drives pricing.' },
+        urgency: { type: 'string', enum: ['now', 'today', 'tomorrow', 'this_week'], description: 'How urgent the request is. Affects pricing.' },
       },
       required: ['provider_id', 'slot_iso'],
     },
@@ -190,16 +198,31 @@ interface ToolDispatchContext extends AgentContext {
   input: ConversationInput;
   artifacts: ConversationArtifact[];
   candidateMap: Map<string, RankedProvider>; // populated by search_providers, used by book/contact
-  intentCache: { service_slug: string | null; time_iso: string | null };
+  intentCache: {
+    service_slug: string | null;
+    time_iso: string | null;
+    complexity?: 'basic' | 'intermediate' | 'complex';
+    urgency?: 'now' | 'today' | 'tomorrow' | 'this_week';
+  };
+}
+
+function inferUrgency(slotIso: string): 'now' | 'today' | 'tomorrow' | 'this_week' {
+  const slot = new Date(slotIso).getTime();
+  const now = Date.now();
+  const hours = (slot - now) / (60 * 60 * 1000);
+  if (hours < 3) return 'now';
+  if (hours < 24) return 'today';
+  if (hours < 48) return 'tomorrow';
+  return 'this_week';
 }
 
 async function dispatchTool(call: { name: string; args: Record<string, unknown> }, ctx: ToolDispatchContext): Promise<unknown> {
   const args = call.args ?? {};
   switch (call.name) {
     case 'search_providers':
-      return await toolSearchProviders(args as { service_slug: string; time_iso?: string; notes?: string }, ctx);
+      return await toolSearchProviders(args as { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' }, ctx);
     case 'book_appointment':
-      return await toolBookAppointment(args as { provider_id: string; slot_iso: string }, ctx);
+      return await toolBookAppointment(args as { provider_id: string; slot_iso: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' }, ctx);
     case 'contact_places_provider':
       return await toolContactPlacesProvider(args as {
         place_id: string; business_name: string; requested_time: string; user_note?: string;
@@ -210,12 +233,14 @@ async function dispatchTool(call: { name: string; args: Record<string, unknown> 
 }
 
 async function toolSearchProviders(
-  args: { service_slug: string; time_iso?: string; notes?: string },
+  args: { service_slug: string; time_iso?: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' },
   ctx: ToolDispatchContext,
 ): Promise<unknown> {
   const timeIso = args.time_iso || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   ctx.intentCache.service_slug = args.service_slug;
   ctx.intentCache.time_iso = timeIso;
+  const complexity = args.complexity ?? 'basic';
+  const urgency = args.urgency ?? inferUrgency(timeIso);
 
   const intent = {
     service_slug: args.service_slug,
@@ -227,9 +252,12 @@ async function toolSearchProviders(
       confidence: 1,
     },
     time: { iso: timeIso, original_phrase: args.time_iso ?? '', confidence: 0.8 },
-    urgency: 'tomorrow' as const,
+    urgency,
     notes: args.notes ?? '',
+    complexity,
   };
+  ctx.intentCache.complexity = complexity;
+  ctx.intentCache.urgency = urgency;
 
   const disc = await runDiscovery({ intent }, ctx, await nextStep(ctx));
   const candidates: ProviderCandidate[] = disc.candidates;
@@ -238,6 +266,8 @@ async function toolSearchProviders(
       intent,
       candidates,
       user_location: { point: intent.location.point, address_text: intent.location.text },
+      customer_user_id: ctx.input.user_id,
+      complexity,
     },
     ctx,
     await nextStep(ctx),
@@ -276,12 +306,32 @@ async function toolSearchProviders(
 }
 
 async function toolBookAppointment(
-  args: { provider_id: string; slot_iso: string; notes?: string },
+  args: { provider_id: string; slot_iso: string; notes?: string; complexity?: 'basic' | 'intermediate' | 'complex'; urgency?: 'now' | 'today' | 'tomorrow' | 'this_week' },
   ctx: ToolDispatchContext,
 ): Promise<unknown> {
   if (args.provider_id.startsWith('places:')) {
     return { error: 'This is a Google Places provider — use contact_places_provider instead.' };
   }
+  const complexity = args.complexity ?? ctx.intentCache.complexity ?? 'basic';
+  const urgency = args.urgency ?? ctx.intentCache.urgency ?? inferUrgency(args.slot_iso);
+  const serviceSlug = ctx.intentCache.service_slug ?? 'ac_repair';
+
+  // Compute price BEFORE creating the booking so the breakdown is persisted on insert.
+  let priceBreakdown: Record<string, unknown> | null = null;
+  try {
+    priceBreakdown = await ctx.callTool('compute_price', {
+      provider_id: args.provider_id,
+      service_slug: serviceSlug,
+      slot_iso: args.slot_iso,
+      user_point: ctx.input.user_location.point,
+      complexity,
+      urgency,
+      customer_user_id: ctx.input.user_id,
+    });
+  } catch (e) {
+    ctx.logger.warn('compute_price failed; proceeding without breakdown', e);
+  }
+
   const out = await runBookingPhaseA(
     {
       user_id: ctx.input.user_id,
@@ -290,6 +340,8 @@ async function toolBookAppointment(
       slot_start: args.slot_iso,
       customer_lang: ctx.input.locale,
       notes: args.notes ?? '',
+      complexity,
+      price_breakdown: priceBreakdown,
     },
     ctx,
     await nextStep(ctx),
@@ -304,6 +356,8 @@ async function toolBookAppointment(
     provider_name: providerName,
     slot_iso: args.slot_iso,
     invitation_channel: out.invitation_channel,
+    complexity,
+    price_breakdown: priceBreakdown,
   });
 
   return {
@@ -438,6 +492,8 @@ async function toolContactPlacesProvider(
     place_name: args.business_name,
     channel,
     message_body: messageBody,
+    booking_id: bookingId,
+    slot_iso: slotStart.toISOString(),
   });
 
   return {

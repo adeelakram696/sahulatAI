@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import PlacesContactDialog from '@/components/recommendations/places-contact-dialog';
+import { PriceBreakdownCard, type PriceBreakdown } from '@/components/booking/booking-realtime';
 
 type Location = { id: string; label: string; address_text: string; city: string | null; town_or_area: string | null };
 
@@ -23,8 +24,8 @@ type Provider = {
 
 type Artifact =
   | { type: 'providers'; service_slug: string; requested_time_iso: string | null; bookable: Provider[]; also_nearby: Provider[] }
-  | { type: 'booking_confirmation'; booking_id: string; provider_name: string; slot_iso: string; invitation_channel: string }
-  | { type: 'places_contact_sent'; place_id: string; place_name: string; channel: string; message_body: string };
+  | { type: 'booking_confirmation'; booking_id: string; provider_name: string; slot_iso: string; invitation_channel: string; complexity?: string | null; price_breakdown?: PriceBreakdown | null }
+  | { type: 'places_contact_sent'; place_id: string; place_name: string; channel: string; message_body: string; booking_id?: string; slot_iso?: string };
 
 type ChatTurn =
   | { role: 'user'; content: string }
@@ -37,16 +38,95 @@ const SUGGESTIONS = [
   { lang: 'Roman Urdu', text: 'AC me cooling nahi kar raha' },
 ];
 
-export default function ChatSurface({ userId: _userId, locations }: { userId: string; locations: Location[] }) {
+const STORAGE_VERSION = 'v1';
+function storageKey(userId: string) { return `sahuliat:chat:${STORAGE_VERSION}:${userId}`; }
+const MAX_PERSISTED_TURNS = 40;
+
+interface PersistedState { turns: ChatTurn[]; selectedLocId: string; updatedAt: number }
+
+function loadPersisted(userId: string): PersistedState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(storageKey(userId));
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedState;
+  } catch {
+    return null;
+  }
+}
+
+function savePersisted(userId: string, state: PersistedState) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(storageKey(userId), JSON.stringify(state));
+  } catch {
+    // Quota or serialization error — ignore.
+  }
+}
+
+function clearPersisted(userId: string) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.removeItem(storageKey(userId)); } catch {}
+}
+
+export default function ChatSurface({
+  userId,
+  locations,
+  prefilledQuery,
+  prefilledSlug: _prefilledSlug,
+  autosubmit,
+}: {
+  userId: string;
+  locations: Location[];
+  prefilledQuery?: string;
+  prefilledSlug?: string;
+  autosubmit?: boolean;
+}) {
   const [selectedLocId, setSelectedLocId] = useState(locations[0].id);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(prefilledQuery ?? '');
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const autoSentRef = useRef(false);
+
+  // Restore persisted state on mount
+  useEffect(() => {
+    const restored = loadPersisted(userId);
+    if (restored) {
+      setTurns(restored.turns);
+      if (locations.some((l) => l.id === restored.selectedLocId)) {
+        setSelectedLocId(restored.selectedLocId);
+      }
+    }
+    setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist on every change (cap to last MAX_PERSISTED_TURNS)
+  useEffect(() => {
+    if (!hydrated) return;
+    const trimmed = turns.slice(-MAX_PERSISTED_TURNS);
+    savePersisted(userId, { turns: trimmed, selectedLocId, updatedAt: Date.now() });
+  }, [turns, selectedLocId, hydrated, userId]);
 
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' });
   }, [turns, pending]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (autosubmit && prefilledQuery && !autoSentRef.current) {
+      autoSentRef.current = true;
+      send(prefilledQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  function clearChat() {
+    setTurns([]);
+    clearPersisted(userId);
+  }
 
   async function send(text: string) {
     if (!text.trim() || pending) return;
@@ -80,10 +160,18 @@ export default function ChatSurface({ userId: _userId, locations }: { userId: st
   const selectedLocation = locations.find((l) => l.id === selectedLocId)!;
 
   return (
-    <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 57px)' }}>
+    <div className="flex flex-col min-h-[calc(100dvh-57px-64px)] md:min-h-[calc(100dvh-57px)]">
       <div className="border-b border-border bg-background sticky top-[57px] z-[5]">
-        <div className="container max-w-3xl py-2.5">
+        <div className="container max-w-3xl py-2.5 flex items-center justify-between gap-3">
           <LocationChip locations={locations} selectedId={selectedLocId} onChange={setSelectedLocId} selected={selectedLocation} />
+          {turns.length > 0 && (
+            <button
+              onClick={clearChat}
+              className="text-[11px] text-muted-foreground hover:text-foreground rounded-md border border-border px-2 py-1"
+            >
+              New chat
+            </button>
+          )}
         </div>
       </div>
 
@@ -283,32 +371,52 @@ function ProviderCard({ p, serviceSlug, requestedTimeIso }: { p: Provider; servi
 function BookingConfirmedArtifact({ a }: { a: Extract<Artifact, { type: 'booking_confirmation' }> }) {
   const slot = new Date(a.slot_iso).toLocaleString();
   return (
-    <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/10 p-3 text-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-emerald-600">✓</span>
-        <p className="font-medium">Invitation sent to {a.provider_name}</p>
+    <div className="space-y-2">
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/10 p-3 text-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-emerald-600">✓</span>
+          <p className="font-medium">Invitation sent to {a.provider_name}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Slot: {slot} · Channel: <span className="font-medium uppercase">{a.invitation_channel}</span>
+        </p>
+        <div className="mt-2">
+          <Link href={`/booking/${a.booking_id}`} className="text-xs font-medium hover:underline">
+            Track this booking →
+          </Link>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Slot: {slot} · Channel: <span className="font-medium uppercase">{a.invitation_channel}</span>
-      </p>
-      <div className="mt-2">
-        <Link href={`/booking/${a.booking_id}`} className="text-xs font-medium hover:underline">
-          Track this booking →
-        </Link>
-      </div>
+      {a.price_breakdown && (
+        <PriceBreakdownCard breakdown={a.price_breakdown} complexity={a.complexity} compact />
+      )}
     </div>
   );
 }
 
 function PlacesContactSentArtifact({ a }: { a: Extract<Artifact, { type: 'places_contact_sent' }> }) {
+  const slot = a.slot_iso ? new Date(a.slot_iso).toLocaleString() : null;
   return (
-    <details className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/10 p-3 text-sm">
-      <summary className="cursor-pointer font-medium">
-        ✉ Message sent to {a.place_name} <span className="text-xs text-muted-foreground ml-2">({a.channel})</span>
-      </summary>
-      <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground">
+    <div className="rounded-lg border border-purple-200 bg-purple-50 dark:bg-purple-950/10 p-3 text-sm space-y-2">
+      <div className="flex items-start gap-2">
+        <span className="text-purple-600 shrink-0">✉</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">Request sent to {a.place_name}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {slot && <>Slot: {slot} · </>}Channel: <span className="font-medium uppercase">{a.channel}</span>
+          </p>
+        </div>
+      </div>
+      {a.booking_id && (
+        <Link href={`/booking/${a.booking_id}`} className="block text-xs font-medium hover:underline">
+          Track this request →
+        </Link>
+      )}
+      <details className="text-xs">
+        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Preview the message</summary>
+        <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground bg-background border border-border rounded-md p-2">
 {a.message_body}
-      </pre>
-    </details>
+        </pre>
+      </details>
+    </div>
   );
 }

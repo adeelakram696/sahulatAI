@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { getUserRole } from '@/lib/auth/role';
 
 export default function SigninForm() {
   const router = useRouter();
@@ -15,14 +16,20 @@ export default function SigninForm() {
     e.preventDefault();
     setPending(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setPending(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setPending(false);
       toast.error(error.message);
       return;
     }
-    const next = search.get('next') || '/chat';
-    router.push(next);
+    // Auto-route by role: providers go to their dashboard by default.
+    let target = search.get('next');
+    if (!target && data.user) {
+      const role = await getUserRole(supabase, data.user.id);
+      target = role === 'provider' ? '/provider/dashboard' : '/chat';
+    }
+    setPending(false);
+    router.push(target || '/chat');
     router.refresh();
   }
 

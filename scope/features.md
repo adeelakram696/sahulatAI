@@ -19,8 +19,15 @@ Three-tier prioritization: **MVP** (must ship), **Stretch** (ship if time), **Cu
 - **A7. Provider recommendations card stack** — top 3 ranked, each with photo, distance, rating, price band, ETA, *reasoning text*, and a clear **bookable vs contact-only** state (registered providers are bookable; Places-API-only providers show "Call directly" + "Claim this business" CTA).
 - **A8. Map preview** of providers around the selected location (Google Maps JS).
 - **A9. Booking + invitation simulation** — pick slot → `bookings.status = invitation_sent` → `notify_provider` tool fires (Realtime → WhatsApp → SMS → mock fallback chain) → provider taps acceptance link → `confirmed` → customer push + **bilingual confirmation message** in chat + **structured summary card** matching the brief's example output + receipt PDF + **calendar reminder** (`.ics` + Google Calendar deep link, no API auth needed).
-- **A10. My bookings** page — timeline of upcoming + past, with status (invitation_sent / confirmed / reminded / in_progress / completed / rejected).
+- **A10. My bookings** page — timeline of upcoming + past, with status (invitation_sent / query_sent / confirmed / en_route / arrived / reminded / in_progress / completed / rejected / cancelled).
 - **A11. Follow-up rating prompt** after completion.
+- **A12. Home category grid** — hero + horizontal scrolling row of 6 top categories (auto-submit to chat on tap) + grouped grid of all 16 (Home Services / Maintenance / Auto / Personal Care).
+- **A13. Map view** (`/map`) — Google Maps with provider pins. DB providers = primary pin + ✓ verified badge; Places providers = neutral pin + "via Google". Pan/zoom refetches providers (debounced 500 ms, 60 s in-memory cache). Tap pin → bottom sheet with the same ProviderCard used in chat → Book / Contact button.
+- **A14. Account page** (`/profile`) — avatar (DiceBear), editable display name, locale, push status, links to /profile/locations and /profile/security, sign-out.
+- **A15. Bottom nav (mobile)** — 5 tabs: Home / AI / Map / Bookings / Account; hidden on `md+` where the top header is used.
+- **A16. Dynamic pricing with breakdown** — every booking computes a transparent price = base visit fee + distance cost + hourly_rate × estimated hours, then applies adjustments for urgency, complexity, loyalty discount, and surge. Breakdown rendered on the booking page and in the structured summary card, in both English and Urdu.
+- **A17. Service-quality status flow** — provider transitions through `confirmed → en_route → arrived → in_progress → completed`. On Mark Complete, provider fills a checklist (problem fixed, area cleaned, photos placeholder). Customer sees a horizontal status timeline updating in real time.
+- **A18. Report-issue / dispute flow** — on `/booking/[id]` when status ∈ {confirmed, en_route, arrived, in_progress, completed}, customer can open a dispute (no_show / quality / price / cancellation / overrun / damage) with a statement. Routes through the Dispute Resolution agent.
 
 ### B. Business / Provider portal
 - **B1. Sign up + email/password** (Supabase auth, separate from customer; provider role flag).
@@ -31,7 +38,16 @@ Three-tier prioritization: **MVP** (must ship), **Stretch** (ship if time), **Cu
 - **B6. Notification preferences** — WhatsApp opt-in (verified phone) and/or SMS opt-in. Determines which channel the `notify_provider` tool tries first.
 - **B7. Booking invitation inbox** with Realtime updates — Accept / Reject / Reschedule. Pending invitations time-out after a configurable window (default 15 min) → status `rejected`, customer notified.
 - **B8. Provider acceptance page** (mobile-first, tokenized URL): bare-bones view when provider opens the invitation link from WhatsApp/SMS — accept/reject without logging in.
-- **B9. Reputation panel** — average rating, total bookings, response time.
+- **B9. Reputation panel** — average rating (review-recency weighted), total bookings, on-time score, cancellation rate, response time.
+- **B10. Service-quality controls** — On-the-way / Arrived / Mark complete actions per booking. Mark complete opens checklist modal (problem fixed, cleaned up, photos placeholder).
+- **B11. Dispute response inbox** — section listing disputes opened against the provider's bookings, with Respond button. Provider can submit a counter-statement; resolution policy applied by Dispute Resolution agent.
+
+### C. Agentic system (Antigravity)
+- **C1. 8-factor matching** — Ranking agent scores candidates on: distance (25), rating with 90-day recency decay (20), on-time score (15), availability with capacity (10), inverse cancellation rate (10), price-fit (10), language match (5), returning-customer pref (5). Trace step shows factor-by-factor breakdown.
+- **C2. Job complexity classification** — Intent Parser emits `complexity: 'basic' | 'intermediate' | 'complex'`; Ranking uses it to weight provider `specializations[]`.
+- **C3. Dynamic pricing engine** — `compute_price` Antigravity tool. Inputs: provider rates, distance, slot, complexity, urgency, customer's loyalty (prior completed bookings), surge (concurrent bookings in same category/area). Outputs structured breakdown.
+- **C4. Dispute Resolution Agent** — handles open / under_review / resolved / escalated states; applies refund + compensation + blacklist policy by dispute kind; emits trace.
+- **C5. Auto-rescheduling** — when provider rejects an invitation, Planner re-routes to Discovery with `exclude_provider_ids` to recommend an alternate.
 
 ### C. Agentic system (the heart)
 - **C1. Antigravity-orchestrated pipeline** with 6 agents (see [agent-workflow.md](./agent-workflow.md)):

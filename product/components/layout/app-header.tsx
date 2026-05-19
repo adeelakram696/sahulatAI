@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import UserMenu from './user-menu';
 
-export default async function AppHeader({ active }: { active?: 'chat' | 'bookings' | 'locations' | 'security' }) {
+export default async function AppHeader({ active }: { active?: 'chat' | 'bookings' | 'locations' | 'security' | 'map' | 'profile' }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -20,13 +20,14 @@ export default async function AppHeader({ active }: { active?: 'chat' | 'booking
         <nav className="flex items-center gap-4 text-sm">
           {user ? (
             <>
-              <NavLink href="/chat" label="Chat" active={active === 'chat'} />
-              <NavLink href="/bookings" label="My bookings" active={active === 'bookings'} />
+              <NavLink href="/chat" label="Chat" active={active === 'chat'} className="hidden md:inline" />
+              <NavLink href="/map" label="Map" active={active === 'map'} className="hidden md:inline" />
+              <NavLink href="/bookings" label="My bookings" active={active === 'bookings'} className="hidden md:inline" />
               <UserMenu email={user.email ?? ''} />
             </>
           ) : (
             <>
-              <Link href="/for-business" className="text-muted-foreground hover:text-foreground">
+              <Link href="/for-business" className="hidden md:inline text-muted-foreground hover:text-foreground">
                 List your service
               </Link>
               <Link href="/auth/signin" className="font-medium">
@@ -40,10 +41,10 @@ export default async function AppHeader({ active }: { active?: 'chat' | 'booking
   );
 }
 
-function NavLink({ href, label, active }: { href: string; label: string; active?: boolean }) {
+function NavLink({ href, label, active, className }: { href: string; label: string; active?: boolean; className?: string }) {
   return (
     <Link href={href}
-      className={active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}>
+      className={`${active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}${className ? ` ${className}` : ''}`}>
       {label}
     </Link>
   );

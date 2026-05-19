@@ -127,15 +127,60 @@ The implementation is **complete** when every check in this doc passes. This is 
 | AR-4 | Bilingual reasoning on top picks | UI "Why?" shows EN + UR |
 | AR-5 | Autonomy proven | Follow-up fires without user input |
 
-### Matching quality (20%)
+### Matching quality (25%)
 
 | # | Check |
 |---|---|
-| MQ-1 | 5-factor composite score implemented | TS function in `ranking.ts` |
+| MQ-1 | **8-factor** composite score implemented | TS function in `ranking.ts` with all 8 factors |
 | MQ-2 | Distance via Distance Matrix | trace shows `google.distance_matrix` |
 | MQ-3 | Availability check enforced | `supabase.check_availability` + exclusion constraint |
 | MQ-4 | Low-confidence fallback shown | `low_confidence: true` UI state |
 | MQ-5 | Dedup logic visible in trace | `sources_breakdown` in Discovery output |
+| MQ-6 | Rating recency decay applied | reviews older than 90 days weighted less in score |
+| MQ-7 | On-time score factored in | `providers.on_time_score` × 15 in ranking |
+| MQ-8 | Cancellation rate (inverse) factored in | `providers.cancellation_rate` × 10 in ranking |
+| MQ-9 | Job complexity classification | Intent Parser emits `complexity` enum; ranking awards specialization bonus |
+| MQ-10 | Factor-by-factor breakdown shown in trace | trace step for each pick lists all 8 contributions |
+| MQ-11 | Returning-customer preference | prior-booking-with-provider awards +5 |
+
+### Scheduling, pricing & service workflow (15%)
+
+| # | Check |
+|---|---|
+| SPW-1 | `compute_price` Antigravity tool emits structured breakdown | `bookings.price_breakdown` populated; line items visible on booking page |
+| SPW-2 | Pricing factors: base + distance + hourly + urgency + complexity + loyalty + surge | All 7 line items present when applicable |
+| SPW-3 | Bilingual pricing explanation | EN + UR strings in breakdown |
+| SPW-4 | Service-quality status flow | en_route → arrived → in_progress → completed transitions implemented + Realtime to customer |
+| SPW-5 | Completion checklist persisted | `bookings.service_checklist` jsonb populated after Mark complete |
+| SPW-6 | Auto-reschedule on rejection | `invitation_expired` event re-routes Planner → Discovery with exclude list |
+| SPW-7 | Travel-time buffer | next booking can't start within `avg_duration` of previous slot for same provider (exclusion constraint covers basic case) |
+
+### Dispute handling, reliability & scalability (15%)
+
+| # | Check |
+|---|---|
+| DH-1 | `disputes` table exists with RLS | migration applied |
+| DH-2 | 6 dispute kinds supported | no_show / quality / price / cancellation / overrun / damage |
+| DH-3 | Dispute Resolution Agent registered | `lib/antigravity/agents/disputes.ts` |
+| DH-4 | Policy auto-applies refund / compensation | resolution jsonb populated by agent |
+| DH-5 | Customer can open dispute from booking page | Report-issue button visible on confirmed+ bookings |
+| DH-6 | Provider can respond | Disputes section in provider dashboard with Respond form |
+| DH-7 | Reputation effects | on_time_score and cancellation_rate adjust on resolved disputes |
+| DH-8 | Blacklist threshold | repeated upheld disputes → `published = false` |
+| DH-9 | Human escalation path | `escalated_at` set, logged |
+| DH-10 | Trace visibility | dispute agent emits trace per state change |
+
+### Multilingual robustness & edge cases (15%)
+
+| # | Check |
+|---|---|
+| ML-1 | Urdu (`اردو` script) input | parses correctly |
+| ML-2 | Roman Urdu input | parses correctly |
+| ML-3 | English input | parses correctly |
+| ML-4 | Code-switched input ("Mujhe kal morning main AC service chahiye") | parses correctly |
+| ML-5 | Misspellings tolerated | LLM-first classification handles typos |
+| ML-6 | Confidence score emitted | `service_confidence`, `time.confidence`, `location.confidence` |
+| ML-7 | Low-confidence triggers clarification | bilingual question shown |
 
 ### Action simulation (15%)
 
@@ -172,6 +217,22 @@ The implementation is **complete** when every check in this doc passes. This is 
 | IUX-6 | Confetti + summary card matching brief format | confirmed receipt screen |
 | IUX-7 | PWA installable on mobile + desktop | Lighthouse PWA pass |
 | IUX-8 | < 8 s perceived latency for agent run | progress card streams |
+| IUX-9 | Home category grid with quick row + grouped grid | tap auto-submits chat |
+| IUX-10 | Map view with DB vs Places pin distinction | bottom sheet uses same ProviderCard |
+| IUX-11 | Bottom nav on mobile, top header on desktop | 5 tabs, active state by route |
+| IUX-12 | Account page with avatar + sub-pages + sign-out | `/profile` real page (not just dropdown) |
+| IUX-13 | Service-quality timeline visible to customer in real time | en_route / arrived / completed transitions animate |
+
+### Stress-test scenarios (from brief)
+
+| # | Scenario | How we handle it |
+|---|---|---|
+| ST-1 | No suitable provider available in time window | Discovery returns `reason: 'no_match'`; UI shows "broaden radius" + clarify CTA |
+| ST-2 | Provider cancels after confirmation | `invitation_expired` or rejection → Planner re-routes to Discovery with exclude list |
+| ST-3 | Misspelled / mixed-language input | LLM-first parser tolerates typos; keyword fallback covers common terms |
+| ST-4 | Two users request same provider at overlapping times | PostGIS exclusion constraint; second booking returns conflict, agent suggests next slot |
+| ST-5 | Customer disputes price or quality after service | Report-issue → Dispute Resolution agent → policy-driven refund/compensation |
+| ST-6 | Provider with high rating but recent negative reviews | Recency decay on rating + cancellation_rate + risk_score push them down |
 
 ---
 

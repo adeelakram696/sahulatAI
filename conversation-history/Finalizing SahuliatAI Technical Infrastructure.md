@@ -228,3 +228,43 @@ To allow the AI agent to search for nearby providers and to power the GPS map on
 *   `VAPID` / `TWILIO` / `WHATSAPP`: You can leave these blank for now until we specifically build out those notification systems!
 
 Once you populate `.env.local` with your Google and Gemini API keys, the AI Chat assistant and the Location Map we just built will be fully functional! Would you like me to wait for you to add those, or should we move on to building the **Provider Dashboard** next?
+
+### User Input
+
+i updated all the env vars required. now create a .md file how to test with seeded users and all.
+
+*Edited relevant file*
+
+*Viewed [.env.local](file:///Users/adeelakram/Documents/projects/self/google-hackathon/project/.env.local) *
+
+*Edited relevant file*
+
+### Planner Response
+
+I've created a comprehensive **`TESTING.md`** file in the root of your `project/` directory! 
+
+It outlines the complete end-to-end testing workflow using the pre-seeded users. 
+
+**Here is a quick summary of what is inside:**
+1. **The Pre-Seeded Accounts:** Details the emails and passwords for the Customer (`ayesha@example.com`) and Providers (`ali@example.com`, `tutor@example.com`).
+2. **The 2-Browser Strategy:** A step-by-step walkthrough detailing why and how to log in as the Customer in Browser A, and the Provider in Browser B (or an incognito window).
+3. **The Core Loop Test:** Instructions on triggering the Conversational AI from the customer side, viewing the Google Places results, sending a booking, and watching it pop up instantly on the Provider's dashboard.
+4. **Troubleshooting:** Quick fixes for common issues like API key mismatches or browser notification blocks.
+
+You can view the exact details by opening `/project/TESTING.md` in your editor. 
+
+Let me know if you want to implement the Provider Dashboard next, or if you'd like to test the application right now by running `pnpm dev`!
+
+### User Input
+
+great now let me check locally and deploy on production vercel then we can proceed and fixings
+
+*Viewed [TESTING.md](file:///Users/adeelakram/Documents/projects/self/google-hackathon/project/TESTING.md) *
+
+### Planner Response
+
+Sounds like a great plan! Go ahead and test the flow locally, and run your Vercel production deployment. 
+
+Take your time running through the seeded accounts, the AI chat interactions, and the GPS integrations. If you hit any snags, UI bugs, or need to tweak the AI's behavior, just drop the feedback here and we'll fix them up together.
+
+Whenever you're ready to proceed, we can squash those bugs or move on to building the **Provider Dashboard** and real-time booking acceptance flow. Good luck with the deployment!

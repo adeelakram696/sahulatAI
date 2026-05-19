@@ -11,7 +11,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, slot_start, slot_end, service_category, location_text, invitation_channel, invitation_sent_at, providers(business_name, phone, rating_avg)')
+    .select('id, status, slot_start, slot_end, service_category, location_text, invitation_channel, invitation_sent_at, complexity, price_breakdown, en_route_at, arrived_at, completed_at, service_checklist, providers(business_name, phone, rating_avg)')
     .eq('id', id)
     .eq('customer_user_id', user.id)
     .single();

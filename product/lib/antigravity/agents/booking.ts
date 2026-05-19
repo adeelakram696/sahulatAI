@@ -15,6 +15,8 @@ interface BookingInput {
   customer_phone?: string;
   customer_lang?: string;
   notes?: string;
+  complexity?: 'basic' | 'intermediate' | 'complex';
+  price_breakdown?: Record<string, unknown> | null;
 }
 interface BookingOutput {
   booking_id: string;
@@ -61,6 +63,8 @@ export async function runBookingPhaseA(input: BookingInput, ctx: AgentContext, s
       customer_lang: input.customer_lang ?? 'en',
       agent_run_id: ctx.runId,
       notes: input.notes ?? '',
+      complexity: input.complexity ?? 'basic',
+      price_breakdown: input.price_breakdown ?? null,
       price_estimate: priceBand ? { ...(priceBand as object), currency: 'PKR' } : undefined,
     },
     ctx,

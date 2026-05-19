@@ -6,9 +6,9 @@ import { admin } from '@/lib/supabase/admin';
 import type { AgentContext } from '../types';
 import { callTool } from '../tools';
 
-type Mode = 'enqueue_pre_appointment' | 'dispatch' | 'check_completion' | 'send_rating_prompt';
+type Mode = 'enqueue_pre_appointment' | 'dispatch' | 'check_completion' | 'send_rating_prompt' | 'dispatch_status_push';
 
-interface FollowupInput { mode: Mode; booking_id: string; reminder_kind?: string }
+interface FollowupInput { mode: Mode; booking_id: string; reminder_kind?: string; status?: string; title?: string }
 interface FollowupOutput { enqueued: number; notifications_sent: number; status_updates: number }
 
 export async function runFollowup(input: FollowupInput, ctx: AgentContext, stepIndex: number): Promise<FollowupOutput> {
@@ -74,6 +74,22 @@ export async function runFollowup(input: FollowupInput, ctx: AgentContext, stepI
         title: 'How was your service?',
         body: `Rate ${provider?.business_name ?? 'your provider'}.`,
         url: `/bookings?rate=${booking.id}`,
+      }, ctx);
+      notificationsSent++;
+      break;
+    }
+    case 'dispatch_status_push': {
+      const provName = provider?.business_name ?? 'Your provider';
+      const bodyText = input.status === 'en_route'
+        ? `${provName} is on the way.`
+        : input.status === 'arrived'
+          ? `${provName} has arrived at your location.`
+          : `${provName} started the service.`;
+      await callTool('web_push.send', {
+        user_id: booking.customer_user_id,
+        title: input.title ?? 'Service update',
+        body: bodyText,
+        url: `/booking/${booking.id}`,
       }, ctx);
       notificationsSent++;
       break;

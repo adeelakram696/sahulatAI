@@ -96,7 +96,63 @@ Three personas: **Customer**, **Business Owner**, and **Judge / Demo Viewer**.
 | 10 | Opens **Trace timeline** → exportable JSON of full agent run (all 4 logical runs joined by `run_id`) | Trace inspector |
 | 11 | Toggles **Replay** → re-runs the agent pipeline from the same input, traces re-render | Trace replay |
 
-**Why this matters:** judges award the 25% Antigravity score and 20% reasoning score based on *visibility* of the agent flow. This journey makes both visible without the judge needing to read code.
+**Why this matters:** judges award the Antigravity score and reasoning score based on *visibility* of the agent flow. This journey makes both visible without the judge needing to read code.
+
+---
+
+## 4. Browse-via-categories journey — "I just want a plumber"
+
+**Persona:** Ayesha doesn't want a conversation; she knows she needs a plumber.
+
+| # | Step | Screen | Behind the scenes |
+|---|---|---|---|
+| 1 | Opens app → lands on Home (signed in) | Home grid | Quick-row + grouped category grid |
+| 2 | Taps **Plumber** tile | Home | Navigates to `/chat?q=Plumber%20chahiye&autosubmit=1` |
+| 3 | Chat surface auto-fills the input + submits | Chat | Agent runs full pipeline; URL is cleaned via replaceState to prevent re-trigger on refresh |
+| 4 | 3 bookable cards + 5 Places cards stream in | Chat | Same as Journey 1 from step 5 onward |
+
+---
+
+## 5. Discover-via-map journey — "Show me what's around"
+
+**Persona:** Ayesha wants to see options visually before choosing.
+
+| # | Step | Screen | Behind the scenes |
+|---|---|---|---|
+| 1 | Bottom nav → **Map** | `/map` | Map centers on default location; calls `/api/providers/nearby` with viewport bbox |
+| 2 | Sees DB providers as primary-color pins with ✓ badge; Google Places pins are gray | Map | DB query (PostGIS bbox) + Places Nearby in parallel, deduped |
+| 3 | Pans to a different area; pins refresh after 500 ms debounce | Map | New bbox → cached for 60 s per (category, bbox-key) |
+| 4 | Taps a DB pin → bottom sheet shows ProviderCard with Book button | Map | Reuses the same component shown in chat |
+| 5 | Taps Book → drops into the chat with provider preselected, runs Phase A | Chat | Same booking flow as Journey 1 |
+
+Or, on a Places pin → Contact button → opens PlacesContactDialog → creates a query_sent booking + sends message.
+
+---
+
+## 6. Service-quality + dispute journey — "Something went wrong"
+
+**Persona:** Ayesha booked Ali AC Services; the AC tech didn't show up.
+
+| # | Step | Screen | Behind the scenes |
+|---|---|---|---|
+| 1 | Confirmed booking → 1h before slot, push fires | Push | pg_cron drains `pre_appointment` reminder |
+| 2 | Slot time arrives; Ali doesn't tap "On the way" | — | Status stays `confirmed`. Customer's status timeline shows no progress |
+| 3 | Ayesha taps **Report an issue** on `/booking/[id]` | Dispute modal | Picks kind=`no_show`, enters statement |
+| 4 | Submits → `/api/disputes` creates row; Dispute Resolution agent kicks in | Agent run | Sets `under_review`, applies no-show policy (100% refund + blacklist threshold check) |
+| 5 | Ayesha sees "Refund initiated · provider flagged" | Dispute status card | `disputes.resolution` rendered |
+| 6 | Ali's dashboard shows a **Disputes** section with the open case | Provider | He can submit a counter-statement |
+| 7 | Provider's `on_time_score` ticks down; `cancellation_rate` ticks up | Provider score | Trigger from migration #16 |
+
+For a *happy-path* completion (provider does show up):
+
+| # | Step | Screen |
+|---|---|---|
+| A | Provider taps **On the way** | Provider dashboard |
+| B | Customer's status timeline animates to "On the way" | Booking page |
+| C | Provider taps **Arrived** | Provider dashboard |
+| D | Provider taps **Mark complete** → opens checklist modal | Provider |
+| E | Checks "Problem fixed" + "Area cleaned" + attaches photo placeholder | Modal |
+| F | Customer sees "Completed" + rating prompt | Booking page |
 
 ---
 

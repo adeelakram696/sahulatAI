@@ -68,6 +68,11 @@ const DETERMINISTIC_MAP: Record<AppEvent, (payload: unknown) => Plan> = {
     reasoning: 'Rating recorded; reputation updated by trigger.',
     expected_artifacts: [],
   }),
+  service_status_changed: (p) => ({
+    plan: [{ agent: 'followup', input: { mode: 'dispatch_status_push', ...(p as object) } }],
+    reasoning: 'Provider transitioned service state — push to customer.',
+    expected_artifacts: ['notifications_sent'],
+  }),
 };
 
 export async function runPlanner(event: AppEvent, payload: unknown, ctx: AgentContext): Promise<Plan> {

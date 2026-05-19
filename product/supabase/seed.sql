@@ -63,5 +63,47 @@ values
   ('PipeFix Plumbing',     'pipefix-plumbing',    '+92 300 555 0127', true, '{en,ur}',  '{plumber}',            st_setsrid(st_makepoint(73.0250, 33.7100), 4326)::geography, 10,'{"mon":["07:00","22:00"],"tue":["07:00","22:00"],"wed":["07:00","22:00"],"thu":["07:00","22:00"],"fri":["07:00","22:00"],"sat":["07:00","22:00"],"sun":["09:00","18:00"]}'::jsonb,'{"plumber":{"min":1100,"max":2400}}'::jsonb, 4.6, 52, 11, '1 hour', true, 'self_onboarded', true),
   ('VoltMaster',           'voltmaster',          '+92 300 555 0128', true, '{en}',     '{electrician}',        st_setsrid(st_makepoint(73.0700, 33.6900), 4326)::geography, 12,'{"mon":["08:00","18:00"],"tue":["08:00","18:00"],"wed":["08:00","18:00"],"thu":["08:00","18:00"],"fri":["08:00","18:00"]}'::jsonb,'{"electrician":{"min":1400,"max":2700}}'::jsonb, 4.4, 23, 17, '1 hour 30 minutes', true, 'self_onboarded', true),
   ('PolishPro Auto',       'polishpro-auto',      '+92 300 555 0129', true, '{en,ur}',  '{car_wash}',           st_setsrid(st_makepoint(72.9580, 33.6470), 4326)::geography, 8, '{"mon":["09:00","20:00"],"tue":["09:00","20:00"],"wed":["09:00","20:00"],"thu":["09:00","20:00"],"fri":["09:00","20:00"],"sat":["09:00","20:00"]}'::jsonb,'{"car_wash":{"min":700,"max":2500}}'::jsonb, 4.5, 39, 14, '1 hour 30 minutes', true, 'self_onboarded', false),
-  ('TechFix Mobile',       'techfix-mobile',      '+92 300 555 0130', true, '{en,ur}',  '{mobile_repair}',      st_setsrid(st_makepoint(73.0479, 33.6844), 4326)::geography, 10,'{"mon":["10:00","21:00"],"tue":["10:00","21:00"],"wed":["10:00","21:00"],"thu":["10:00","21:00"],"fri":["10:00","21:00"],"sat":["11:00","20:00"]}'::jsonb,'{"mobile_repair":{"min":500,"max":3500}}'::jsonb, 4.7, 71, 8, '1 hour', true, 'self_onboarded', true)
+  ('TechFix Mobile',       'techfix-mobile',      '+92 300 555 0130', true, '{en,ur}',  '{mobile_repair}',      st_setsrid(st_makepoint(73.0479, 33.6844), 4326)::geography, 10,'{"mon":["10:00","21:00"],"tue":["10:00","21:00"],"wed":["10:00","21:00"],"thu":["10:00","21:00"],"fri":["10:00","21:00"],"sat":["11:00","20:00"]}'::jsonb,'{"mobile_repair":{"min":500,"max":3500}}'::jsonb, 4.7, 71, 8, '1 hour', true, 'self_onboarded', true),
+  -- Karachi providers (for users in Karachi)
+  ('Karachi Car Mechanics','karachi-car-mech',    '+92 300 555 0131', true, '{en,ur}',  '{car_mechanic}',       st_setsrid(st_makepoint(67.0011, 24.8607), 4326)::geography, 15,'{"mon":["09:00","20:00"],"tue":["09:00","20:00"],"wed":["09:00","20:00"],"thu":["09:00","20:00"],"fri":["09:00","20:00"],"sat":["09:00","18:00"]}'::jsonb,'{"car_mechanic":{"min":1500,"max":6000}}'::jsonb, 4.6, 84, 11, '2 hours', true, 'self_onboarded', true),
+  ('Engine Wala',          'engine-wala',         '+92 300 555 0132', true, '{ur}',     '{car_mechanic}',       st_setsrid(st_makepoint(67.0301, 24.9000), 4326)::geography, 12,'{"mon":["08:00","19:00"],"tue":["08:00","19:00"],"wed":["08:00","19:00"],"thu":["08:00","19:00"],"fri":["08:00","19:00"],"sat":["08:00","16:00"]}'::jsonb,'{"car_mechanic":{"min":1200,"max":5000}}'::jsonb, 4.3, 41, 16, '2 hours', true, 'self_onboarded', false),
+  ('Karachi Home Clean',   'karachi-home-clean',  '+92 300 555 0133', true, '{en,ur}',  '{house_cleaning}',     st_setsrid(st_makepoint(67.0150, 24.8700), 4326)::geography, 10,'{"mon":["08:00","18:00"],"tue":["08:00","18:00"],"wed":["08:00","18:00"],"thu":["08:00","18:00"],"fri":["08:00","18:00"],"sat":["08:00","16:00"]}'::jsonb,'{"house_cleaning":{"min":1000,"max":4000}}'::jsonb, 4.5, 56, 13, '3 hours', true, 'self_onboarded', true),
+  ('Saaf Suthra Karachi',  'saaf-suthra-khi',     '+92 300 555 0134', true, '{ur}',     '{house_cleaning}',     st_setsrid(st_makepoint(66.9920, 24.8500), 4326)::geography, 8, '{"mon":["09:00","17:00"],"tue":["09:00","17:00"],"wed":["09:00","17:00"],"thu":["09:00","17:00"],"fri":["09:00","17:00"]}'::jsonb,'{"house_cleaning":{"min":800,"max":3000}}'::jsonb, 4.1, 18, 22, '3 hours', true, 'self_onboarded', false),
+  ('Karachi Plumbers',     'karachi-plumbers',    '+92 300 555 0135', true, '{en,ur}',  '{plumber}',            st_setsrid(st_makepoint(67.0500, 24.8800), 4326)::geography, 12,'{"mon":["07:00","20:00"],"tue":["07:00","20:00"],"wed":["07:00","20:00"],"thu":["07:00","20:00"],"fri":["07:00","20:00"],"sat":["08:00","18:00"]}'::jsonb,'{"plumber":{"min":1000,"max":2500}}'::jsonb, 4.7, 92, 9, '1 hour', true, 'self_onboarded', true)
 on conflict (slug) do nothing;
+
+-- ============================================================================
+-- Backfill extra columns for the 8-factor matching + pricing engine.
+-- (Existing rows + the new ones above all get reasonable defaults.)
+-- ============================================================================
+update public.providers
+  set on_time_score      = 0.80 + (random() * 0.15),
+      cancellation_rate  = 0.02 + (random() * 0.06),
+      risk_score         = 0.05 + (random() * 0.10),
+      capacity           = 1,
+      base_visit_fee     = 500,
+      base_hourly_rate   = case
+        when 'beautician' = any(categories) then 1500
+        when 'tutor' = any(categories)      then 1200
+        when 'cook' = any(categories)       then 1000
+        when 'mason' = any(categories)      then 700
+        when 'gardening' = any(categories)  then 600
+        else 800
+      end,
+      last_review_at = now() - (random() * interval '60 days')
+  where on_time_score = 0.85
+    and cancellation_rate = 0.05
+    and risk_score = 0.10;
+
+-- Specializations per category (rough taxonomy — provides bonuses for complex jobs)
+update public.providers set specializations = '{gas_refill,inverter_ac,split_ac}'
+  where 'ac_repair' = any(categories) and array_length(specializations,1) is null;
+update public.providers set specializations = '{water_tank,sewerage,fixtures}'
+  where 'plumber' = any(categories) and array_length(specializations,1) is null;
+update public.providers set specializations = '{wiring,fan_repair,switchboard}'
+  where 'electrician' = any(categories) and array_length(specializations,1) is null;
+update public.providers set specializations = '{engine,brakes,clutch}'
+  where 'car_mechanic' = any(categories) and array_length(specializations,1) is null;
+update public.providers set specializations = '{deep_clean,daily,party_setup}'
+  where 'house_cleaning' = any(categories) and array_length(specializations,1) is null;
+

@@ -1,66 +1,93 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/app-header';
+import { SERVICE_CATEGORIES } from '@/lib/services/categories';
 
 export default async function LandingPage() {
-  const t = await getTranslations('landing');
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  const quick = SERVICE_CATEGORIES.filter((c) => c.is_quick);
 
   return (
     <>
       <AppHeader />
-      <main className="container max-w-3xl py-16 md:py-24">
+      <main className="container max-w-3xl py-8 md:py-12">
+        <header className="text-center space-y-4 mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            What service do you need today?
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
+            Tap a category, or open the chat to describe your need in any language.
+          </p>
+          <div className="pt-2 flex gap-2 justify-center flex-wrap">
+            <Link
+              href={user ? '/chat' : '/auth/signup?next=/chat'}
+              className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90"
+            >
+              {user ? 'Open AI chat →' : 'Get started →'}
+            </Link>
+            <Link
+              href={user ? '/map' : '/auth/signup?next=/map'}
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-medium hover:bg-accent"
+            >
+              Browse on map
+            </Link>
+          </div>
+        </header>
 
-      <header className="text-center space-y-6">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-          {t('hero')}
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          {t('subtitle')}
-        </p>
+        {/* Quick row */}
+        <section className="mb-8">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-3">Most popular</p>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
+            {quick.map((c) => (
+              <CategoryChip key={c.slug} category={c} authed={!!user} />
+            ))}
+          </div>
+        </section>
 
-        <div className="pt-6">
-          <Link
-            href={user ? '/chat' : '/auth/signup'}
-            className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-6 py-3 font-medium hover:opacity-90"
-          >
-            {user ? 'Open chat →' : 'Get started →'}
-          </Link>
-        </div>
-
-        <div className="pt-12 grid grid-cols-3 gap-4 text-sm text-muted-foreground max-w-md mx-auto">
-          <Stat label="Categories" value="16" />
-          <Stat label="Providers" value="30+" />
-          <Stat label="Avg rating" value="★4.6" />
-        </div>
-      </header>
-
-      <section className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FeatureCard title="Multilingual" body="English, Urdu, Roman Urdu — type how you talk." />
-        <FeatureCard title="Agentic AI" body="6 Antigravity-powered agents plan, find, and book." />
-        <FeatureCard title="Two-phase booking" body="Real provider acceptance with WhatsApp invitations." />
-      </section>
+        {/* Full grid */}
+        <section>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-3">All services</p>
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+            {SERVICE_CATEGORIES.map((c) => (
+              <CategoryTile key={c.slug} category={c} authed={!!user} />
+            ))}
+          </div>
+        </section>
       </main>
     </>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function CategoryChip({ category, authed }: { category: typeof SERVICE_CATEGORIES[number]; authed: boolean }) {
+  const href = chatHref(category, authed);
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-lg font-semibold text-foreground">{value}</span>
-      <span>{label}</span>
-    </div>
+    <Link
+      href={href}
+      className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-card hover:bg-accent px-3 py-1.5 text-xs font-medium"
+    >
+      <span aria-hidden>{category.emoji}</span>
+      <span>{category.label_en}</span>
+    </Link>
   );
 }
 
-function FeatureCard({ title, body }: { title: string; body: string }) {
+function CategoryTile({ category, authed }: { category: typeof SERVICE_CATEGORIES[number]; authed: boolean }) {
+  const href = chatHref(category, authed);
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <h3 className="font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground">{body}</p>
-    </div>
+    <Link
+      href={href}
+      className="rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/40 transition p-4 text-center"
+    >
+      <div className="text-3xl mb-1.5" aria-hidden>{category.emoji}</div>
+      <div className="text-xs font-medium leading-tight">{category.label_en}</div>
+    </Link>
   );
+}
+
+function chatHref(category: typeof SERVICE_CATEGORIES[number], authed: boolean): string {
+  const search = new URLSearchParams({ q: category.prompt_en, slug: category.slug, autosubmit: '1' });
+  const target = `/chat?${search.toString()}`;
+  return authed ? target : `/auth/signup?next=${encodeURIComponent(target)}`;
 }

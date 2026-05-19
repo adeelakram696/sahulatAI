@@ -38,6 +38,8 @@ export const searchProvidersTool: Tool<typeof SearchInput, typeof SearchOutput> 
       languages: string[]; rating_avg: number; rating_count: number; response_time_minutes: number | null;
       avg_duration: string; hub_lat: number; hub_lng: number; distance_m: number;
       price_band: Record<string, unknown>; whatsapp_opt_in: boolean; sms_opt_in: boolean; source: string;
+      on_time_score?: number; cancellation_rate?: number; last_review_at?: string | null; risk_score?: number;
+      specializations?: string[]; capacity?: number; base_visit_fee?: number; base_hourly_rate?: number;
     }) => ({
       id: row.id,
       business_name: row.business_name,
@@ -55,6 +57,14 @@ export const searchProvidersTool: Tool<typeof SearchInput, typeof SearchOutput> 
       whatsapp_opt_in: row.whatsapp_opt_in,
       sms_opt_in: row.sms_opt_in,
       source: row.source as 'self_onboarded' | 'places_api',
+      on_time_score: Number(row.on_time_score ?? 0.85),
+      cancellation_rate: Number(row.cancellation_rate ?? 0.05),
+      last_review_at: row.last_review_at ?? null,
+      risk_score: Number(row.risk_score ?? 0.10),
+      specializations: row.specializations ?? [],
+      capacity: row.capacity ?? 1,
+      base_visit_fee: Number(row.base_visit_fee ?? 500),
+      base_hourly_rate: Number(row.base_hourly_rate ?? 800),
     }));
     return { candidates };
   },
@@ -106,6 +116,8 @@ const CreateBookingInput = z.object({
   customer_lang: z.string().default('en'),
   agent_run_id: z.string(),
   notes: z.string().default(''),
+  complexity: z.enum(['basic', 'intermediate', 'complex']).default('basic'),
+  price_breakdown: z.record(z.unknown()).nullable().optional(),
   price_estimate: z.record(z.unknown()).optional(),
 });
 const CreateBookingOutput = z.object({ booking_id: z.string(), invitation_token: z.string() });
@@ -132,6 +144,8 @@ export const createBookingTool: Tool<typeof CreateBookingInput, typeof CreateBoo
         agent_run_id: args.agent_run_id,
         invitation_token: token,
         notes: args.notes,
+        complexity: args.complexity,
+        price_breakdown: args.price_breakdown ?? null,
         price_estimate: args.price_estimate ?? null,
       })
       .select('id, invitation_token')

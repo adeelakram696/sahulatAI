@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Toaster } from 'sonner';
+import BottomNav from '@/components/layout/bottom-nav';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,9 +27,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-background text-foreground">
+      <body className="antialiased min-h-screen bg-background text-foreground pb-[64px] md:pb-0">
         <NextIntlClientProvider messages={messages} locale={locale}>
           {children}
+          <BottomNav />
         </NextIntlClientProvider>
         <Toaster richColors position="top-center" />
         <script

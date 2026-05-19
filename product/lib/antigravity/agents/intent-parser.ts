@@ -85,6 +85,7 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
   let bestConfidence = 0;
   let classifierSource: 'llm' | 'keyword' | 'none' = 'none';
   let llmNotes = '';
+  let complexity: 'basic' | 'intermediate' | 'complex' = 'basic';
 
   // 1) PRIMARY: LLM classification with context awareness.
   // The LLM understands phrasing like "tank clean karwana hai" → plumber,
@@ -108,6 +109,12 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
         'Always pick the CLOSEST slug. Only set service_confidence below 0.5 if the request is genuinely outside these 8 categories (e.g. "I want food", "buy clothes").',
         'For valid service requests, set service_confidence between 0.7 and 0.95.',
         'Also extract any contextual hints into a short notes field (e.g. "water tank cleaning", "screen replacement").',
+        '',
+        'Also classify the JOB COMPLEXITY into one of:',
+        '- "basic": single-task, no specialized tools (e.g. fan switch lagao, fridge saaf, mobile screen guard)',
+        '- "intermediate": needs tools or 1-2 hours (e.g. AC service, pipe leak fix, washing machine repair)',
+        '- "complex": multi-hour or specialized skill (e.g. AC gas refill + diagnostic, whole-house wiring, engine rebuild)',
+        'Default to "basic" if unclear.',
         'Output JSON.',
       ].join('\n'),
       userPrompt: `User said: "${input.raw_text}" (locale=${input.locale}).`,
@@ -121,6 +128,11 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
         classifierSource = 'llm';
         llmNotes = llmResult.notes ?? '';
       }
+    }
+    // Pick up complexity even if confidence below threshold (it's optional context).
+    const llmComplexity = (llmResult as { complexity?: 'basic' | 'intermediate' | 'complex' } | null)?.complexity;
+    if (llmComplexity === 'basic' || llmComplexity === 'intermediate' || llmComplexity === 'complex') {
+      complexity = llmComplexity;
     }
   } catch (e) {
     ctx.logger.warn('intent llm unavailable; will fall back to keywords', e);
@@ -171,6 +183,7 @@ export async function runIntentParser(input: IntentInput, ctx: AgentContext, ste
     time: { iso: resolvedUtc.toISOString(), original_phrase: originalPhrase || input.raw_text, confidence: 0.75 },
     urgency,
     notes: llmNotes,
+    complexity,
     needs_clarification: needsClarification,
   };
 

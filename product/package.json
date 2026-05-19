@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack -p 3010",
+    "prebuild": "node scripts/generate-assetlinks.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -27,6 +28,7 @@
     "db:diff": "supabase db diff",
     "db:status": "supabase db pull --dry-run",
     "vapid:generate": "node -e \"import('web-push').then(wp=>{const k=wp.default.generateVAPIDKeys();console.log('VAPID_PUBLIC_KEY=',k.publicKey);console.log('VAPID_PRIVATE_KEY=',k.privateKey)})\"",
+    "pwa:check": "bash scripts/pwa-check.sh",
     "deploy:preview": "bash scripts/deploy.sh preview",
     "deploy:prod": "bash scripts/deploy.sh prod",
     "env:pull": "vercel env pull .env.local"

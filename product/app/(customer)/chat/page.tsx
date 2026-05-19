@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import ChatSurface from '@/components/chat/chat-surface';
 import AppHeader from '@/components/layout/app-header';
 
-export default async function ChatPage() {
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ q?: string; slug?: string; autosubmit?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/signin');
@@ -15,11 +15,18 @@ export default async function ChatPage() {
     .order('last_used_at', { ascending: false, nullsFirst: false });
 
   if (!locations || locations.length === 0) redirect('/onboarding/location');
+  const { q, slug, autosubmit } = await searchParams;
 
   return (
     <>
       <AppHeader active="chat" />
-      <ChatSurface userId={user.id} locations={locations} />
+      <ChatSurface
+        userId={user.id}
+        locations={locations}
+        prefilledQuery={q}
+        prefilledSlug={slug}
+        autosubmit={autosubmit === '1'}
+      />
     </>
   );
 }

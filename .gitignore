@@ -1,0 +1,22 @@
+# Build / deps
+node_modules
+.next
+.vercel
+*.log
+.DS_Store
+
+# Never commit Android signing artifacts
+*.keystore
+*.jks
+signing-key-info.txt
+signing.keystore
+
+# Env files (always managed per environment, never committed)
+.env
+.env.local
+.env.prod
+.env.preview
+.env*.local
+
+Sahuliat - Google Play package
+Sahuliat - Google Play package.zip

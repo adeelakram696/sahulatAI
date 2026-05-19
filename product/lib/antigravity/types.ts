@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 
-export type AgentName = 'planner' | 'intent_parser' | 'discovery' | 'ranking' | 'booking' | 'followup';
+export type AgentName = 'planner' | 'intent_parser' | 'discovery' | 'ranking' | 'booking' | 'followup' | 'disputes';
 
 export type AppEvent =
   | 'new_request'
@@ -15,7 +15,8 @@ export type AppEvent =
   | 'reminder_due'
   | 'completion_check_due'
   | 'rating_prompt_due'
-  | 'rating_submitted';
+  | 'rating_submitted'
+  | 'service_status_changed';
 
 export interface TraceStep {
   runId: string;
@@ -90,6 +91,7 @@ export const IntentSchema = z.object({
   }),
   urgency: z.enum(['now', 'today', 'tomorrow', 'this_week']),
   notes: z.string().default(''),
+  complexity: z.enum(['basic', 'intermediate', 'complex']).default('basic'),
   needs_clarification: z.object({
     field: z.string(),
     question_en: z.string(),
@@ -119,12 +121,36 @@ export const ProviderCandidateSchema = z.object({
   whatsapp_opt_in: z.boolean().default(false),
   sms_opt_in: z.boolean().default(false),
   source: z.enum(['self_onboarded', 'places_api']),
+  // 8-factor matching additions:
+  on_time_score: z.number().default(0.85),
+  cancellation_rate: z.number().default(0.05),
+  last_review_at: z.string().nullable().optional(),
+  risk_score: z.number().default(0.10),
+  specializations: z.array(z.string()).default([]),
+  capacity: z.number().default(1),
+  base_visit_fee: z.number().default(500),
+  base_hourly_rate: z.number().default(800),
 });
 export type ProviderCandidate = z.infer<typeof ProviderCandidateSchema>;
+
+/** Per-pick factor breakdown (visible in trace + UI) */
+export const FactorBreakdownSchema = z.object({
+  distance: z.number(),
+  rating_with_recency: z.number(),
+  on_time: z.number(),
+  availability: z.number(),
+  cancel_inverse: z.number(),
+  price_fit: z.number(),
+  language: z.number(),
+  user_pref: z.number(),
+  specialization_bonus: z.number().default(0),
+});
+export type FactorBreakdown = z.infer<typeof FactorBreakdownSchema>;
 
 /** Ranked provider with score + reasoning */
 export const RankedProviderSchema = ProviderCandidateSchema.extend({
   score: z.number(),
+  factors: FactorBreakdownSchema.optional(),
   reasoning: z.object({ en: z.string(), ur: z.string() }),
   is_bookable: z.boolean(),
   available: z.boolean(),

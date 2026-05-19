@@ -75,6 +75,14 @@ export async function runDiscovery(input: DiscoveryInput, ctx: AgentContext, ste
       whatsapp_opt_in: false,
       sms_opt_in: false,
       source: 'places_api' as const,
+      on_time_score: 0.7,
+      cancellation_rate: 0.15,
+      last_review_at: null,
+      risk_score: 0.3,
+      specializations: [],
+      capacity: 1,
+      base_visit_fee: 500,
+      base_hourly_rate: 800,
     }));
   } catch (e) {
     ctx.logger.warn('places_nearby unavailable; DB-only', e);

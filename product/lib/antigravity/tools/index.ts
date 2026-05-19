@@ -9,6 +9,7 @@ import {
 import { notifyProviderTool } from './notify-provider';
 import { webPushTool } from './push';
 import { calendarArtifactsTool, generateReceiptTool, confirmationMessageTool } from './artifacts';
+import { computePriceTool } from './pricing';
 
 export const ALL_TOOLS = {
   'google.geocode': geocodeTool,
@@ -24,6 +25,7 @@ export const ALL_TOOLS = {
   'generate_calendar_artifacts': calendarArtifactsTool,
   'generate_receipt': generateReceiptTool,
   'llm.confirmation_message': confirmationMessageTool,
+  'compute_price': computePriceTool,
 } as const;
 
 export type ToolName = keyof typeof ALL_TOOLS;

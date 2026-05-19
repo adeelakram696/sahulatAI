@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import SigninForm from '@/components/auth/signin-form';
 
-export default function SigninPage() {
+export default async function SigninPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const params = await searchParams;
+  const next = params.next;
+
   return (
     <main className="container max-w-md py-12">
       <header className="text-center mb-8">
@@ -15,7 +18,10 @@ export default function SigninPage() {
         </p>
         <p>
           Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="font-medium text-foreground hover:underline">
+          <Link 
+            href={`/auth/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`} 
+            className="font-medium text-foreground hover:underline"
+          >
             Sign up
           </Link>
         </p>
