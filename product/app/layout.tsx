@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning className={`${inter.variable} ${plusJakarta.variable}`}>
-      <body className="antialiased min-h-screen bg-background text-foreground pb-[64px] md:pb-0 font-sans">
+      <body className="antialiased min-h-screen bg-background text-foreground pb-[60px] md:pb-0 font-sans overflow-x-hidden">
         <NextIntlClientProvider messages={messages} locale={locale}>
           {children}
           <BottomNav />

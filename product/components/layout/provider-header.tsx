@@ -31,9 +31,9 @@ export default async function ProviderHeader({
           </span>
         </Link>
 
-        {/* Nav */}
+        {/* Desktop nav */}
         {user && (
-          <nav className="flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1">
             <NavLink href="/provider/dashboard" label="Dashboard" active={active === 'dashboard'} />
             <NavLink href="/provider/disputes" label="Disputes" active={active === 'disputes'} />
             <NavLink href="/provider/settings" label="Settings" active={active === 'settings'} />
@@ -50,13 +50,17 @@ export default async function ProviderHeader({
         </div>
       </div>
 
-      {businessName && (
-        <div className="container max-w-4xl pb-1.5">
-          <p className="text-[11px] text-muted-foreground">
-            Acting as <span className="font-semibold text-foreground">{businessName}</span>
-          </p>
+      {/* Mobile tab nav */}
+      {user && (
+        <div className="md:hidden border-t border-border/40">
+          <div className="container max-w-4xl flex">
+            <MobileNavTab href="/provider/dashboard" label="Dashboard" active={active === 'dashboard'} />
+            <MobileNavTab href="/provider/disputes" label="Disputes" active={active === 'disputes'} />
+            <MobileNavTab href="/provider/settings" label="Settings" active={active === 'settings'} />
+          </div>
         </div>
       )}
+
     </header>
   );
 }
@@ -65,10 +69,24 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
   return (
     <Link
       href={href}
-      className={`relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors hidden md:inline-flex ${
+      className={`relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+        active ? 'text-primary bg-primary/8' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+      }`}
+    >
+      {label}
+      {active && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />}
+    </Link>
+  );
+}
+
+function MobileNavTab({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`flex-1 text-center py-2.5 text-xs font-semibold border-b-2 transition-colors ${
         active
-          ? 'text-primary bg-primary/8'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+          ? 'text-primary border-primary'
+          : 'text-muted-foreground border-transparent hover:text-foreground'
       }`}
     >
       {label}

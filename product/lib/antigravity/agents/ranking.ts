@@ -154,10 +154,7 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
       distance_m: distM,
       score,
       factors,
-      reasoning: {
-        en: `${distKm.toFixed(1)} km · ★${c.rating_avg.toFixed(1)} (${c.rating_count}) · on-time ${(c.on_time_score * 100).toFixed(0)}% · cancel ${(c.cancellation_rate * 100).toFixed(0)}% · ${avail.available ? 'available now' : 'next slot ' + (avail.next_available ?? 'soon')}`,
-        ur: `${distKm.toFixed(1)} کلومیٹر · ★${c.rating_avg.toFixed(1)} · بروقت ${(c.on_time_score * 100).toFixed(0)}% · ${avail.available ? 'دستیاب' : 'جلد'}`,
-      },
+      reasoning: buildReasoning(c, distKm, avail.available, avail.next_available),
       is_bookable: c.source === 'self_onboarded',
       available: avail.available,
     };
@@ -201,4 +198,29 @@ function decayForDays(days: number): number {
 function withinHours(aIso: string, bIso: string, hours: number): boolean {
   const diff = Math.abs(new Date(bIso).getTime() - new Date(aIso).getTime());
   return diff <= hours * 60 * 60 * 1000;
+}
+
+function buildReasoning(
+  c: ProviderCandidate,
+  _distKm: number,
+  available: boolean,
+  nextAvailable: string | null,
+): { en: string; ur: string } {
+  if (c.source !== 'self_onboarded') {
+    // Google Places: only show real Google rating — no synthetic on-time/cancel/availability
+    const ratingPart = c.rating_avg > 0 ? `★${c.rating_avg.toFixed(1)}` : 'No rating';
+    return {
+      en: `${ratingPart} · Listed on Google · contact to confirm availability`,
+      ur: `${ratingPart} · گوگل پر درج`,
+    };
+  }
+  // Self-onboarded: real stats only; distance is already shown in the UI card
+  const ratingPart = c.rating_count > 0
+    ? `★${c.rating_avg.toFixed(1)} (${c.rating_count} ${c.rating_count === 1 ? 'review' : 'reviews'})`
+    : 'No reviews yet';
+  const availPart = available ? 'available now' : `next slot ${nextAvailable ?? 'soon'}`;
+  return {
+    en: `${ratingPart} · on-time ${(c.on_time_score * 100).toFixed(0)}% · cancel ${(c.cancellation_rate * 100).toFixed(0)}% · ${availPart}`,
+    ur: `${ratingPart} · بروقت ${(c.on_time_score * 100).toFixed(0)}% · ${available ? 'دستیاب' : 'جلد'}`,
+  };
 }

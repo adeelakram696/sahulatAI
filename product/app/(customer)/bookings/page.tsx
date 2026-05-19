@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/app-header';
+import { ServiceIcon } from '@/components/ui/service-icon';
 import { Calendar, Plus, ChevronRight, Clock } from 'lucide-react';
 
 export default async function BookingsPage() {
@@ -22,18 +23,19 @@ export default async function BookingsPage() {
   return (
     <>
       <AppHeader active="bookings" />
-      <main className="container max-w-3xl py-8">
+      <main className="container max-w-3xl py-6 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="font-display text-2xl font-700 tracking-tight text-foreground">My Bookings</h1>
+        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-3">
+          <div className="min-w-0">
+            <h1 className="font-display text-xl sm:text-2xl font-700 tracking-tight text-foreground">My Bookings</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {all.length === 0 ? 'No bookings yet' : `${all.length} booking${all.length !== 1 ? 's' : ''} total`}
             </p>
           </div>
-          <Link href="/chat" className="btn-primary !py-2 !px-4 !text-xs gap-1.5">
+          <Link href="/chat" className="btn-primary !py-2 !px-3 sm:!px-4 !text-xs gap-1.5 shrink-0">
             <Plus className="size-3.5" />
-            New request
+            <span className="hidden sm:inline">New request</span>
+            <span className="sm:hidden">New</span>
           </Link>
         </div>
 
@@ -94,9 +96,7 @@ function BookingCard({ b }: { b: { id: string; status: string; slot_start: strin
         className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all"
       >
         {/* Category icon */}
-        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${isActive ? 'bg-primary/10' : 'bg-muted'}`}>
-          {categoryEmoji(b.service_category)}
-        </div>
+        <ServiceIcon slug={b.service_category} size="md" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -137,12 +137,3 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function categoryEmoji(slug: string): string {
-  const map: Record<string, string> = {
-    ac_repair: '❄️', plumber: '🔧', electrician: '⚡', tutor: '📚',
-    beautician: '💄', carpenter: '🪚', car_wash: '🚗', car_mechanic: '🔩',
-    mobile_repair: '📱', house_cleaning: '🧹', cook: '👨‍🍳', painter: '🎨',
-    mason: '🧱', appliance_repair: '🔌', gardening: '🌿', pest_control: '🐛',
-  };
-  return map[slug] ?? '🛠️';
-}

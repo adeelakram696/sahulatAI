@@ -20,8 +20,8 @@ export default async function ProviderSettingsPage() {
   return (
     <>
       <ProviderHeader active="settings" businessName={provider.business_name} />
-      <main className="container max-w-2xl py-8">
-        <h1 className="text-2xl font-bold mb-1">Settings</h1>
+      <main className="container max-w-2xl py-6 sm:py-8">
+        <h1 className="font-display text-xl sm:text-2xl font-700 tracking-tight text-foreground mb-1">Settings</h1>
         <p className="text-sm text-muted-foreground mb-6">Edit your business profile, availability, and notifications.</p>
         <ProviderSettingsForm initial={provider} />
       </main>

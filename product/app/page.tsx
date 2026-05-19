@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/app-header';
 import { SERVICE_CATEGORIES } from '@/lib/services/categories';
+import { ServiceIcon } from '@/components/ui/service-icon';
 import { ArrowRight, Sparkles, MapPin, MessageCircle } from 'lucide-react';
 
 export default async function LandingPage() {
@@ -27,16 +28,16 @@ export default async function LandingPage() {
               AI-powered service booking
             </div>
 
-            <h1 className="font-display text-4xl md:text-5xl lg:text-[3.5rem] font-800 tracking-tight text-foreground mb-4 leading-[1.1]">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-800 tracking-tight text-foreground mb-4 leading-[1.1]">
               What service do you{' '}
               <span className="text-gradient">need today?</span>
             </h1>
 
-            <p className="text-base md:text-lg text-muted-foreground max-w-lg mx-auto mb-8 leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto mb-6 sm:mb-8 leading-relaxed px-2">
               Describe your problem in Urdu, Roman Urdu, or English — our AI finds and books the right provider near you.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
               <Link
                 href={user ? '/chat' : '/auth/signup?next=/chat'}
                 className="btn-primary gap-2 !px-6 !py-3 !text-sm"
@@ -74,7 +75,7 @@ export default async function LandingPage() {
         {/* Full grid */}
         <section className="container max-w-3xl py-6">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">All services</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
             {SERVICE_CATEGORIES.map((c) => (
               <CategoryTile key={c.slug} category={c} authed={!!user} />
             ))}
@@ -84,7 +85,7 @@ export default async function LandingPage() {
         {/* Provider CTA */}
         <section className="container max-w-3xl py-8 pb-12">
           <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row items-center gap-4 shadow-sm">
-            <div className="text-3xl shrink-0">🛠️</div>
+            <ServiceIcon slug="appliance_repair" size="lg" />
             <div className="flex-1 text-center sm:text-left">
               <h3 className="font-display font-700 text-base text-foreground">Are you a service provider?</h3>
               <p className="text-sm text-muted-foreground mt-0.5">List your business and receive AI-matched customer requests directly.</p>
@@ -103,9 +104,9 @@ function CategoryChip({ category, authed }: { category: typeof SERVICE_CATEGORIE
   return (
     <Link
       href={chatHref(category, authed)}
-      className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-card hover:bg-accent hover:border-primary/30 hover:text-primary px-3.5 py-1.5 text-xs font-medium transition-all shadow-xs"
+      className="shrink-0 inline-flex items-center gap-2 rounded-full border border-border bg-card hover:bg-accent hover:border-primary/30 hover:text-primary pl-1.5 pr-3.5 py-1.5 text-xs font-medium transition-all shadow-xs"
     >
-      <span aria-hidden>{category.emoji}</span>
+      <ServiceIcon slug={category.slug} size="sm" />
       <span>{category.label_en}</span>
     </Link>
   );
@@ -115,12 +116,10 @@ function CategoryTile({ category, authed }: { category: typeof SERVICE_CATEGORIE
   return (
     <Link
       href={chatHref(category, authed)}
-      className="group flex flex-col items-center rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all p-3.5 text-center"
+      className="group flex flex-col items-center rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all p-2.5 sm:p-3.5 text-center gap-1.5 sm:gap-2"
     >
-      <div className="text-2xl mb-1.5 transition-transform group-hover:scale-110" aria-hidden>
-        {category.emoji}
-      </div>
-      <div className="text-[11px] font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
+      <ServiceIcon slug={category.slug} size="md" className="transition-transform group-hover:scale-105" />
+      <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
         {category.label_en}
       </div>
     </Link>

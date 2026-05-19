@@ -8,7 +8,6 @@ export default function SignupForm() {
   const router = useRouter();
   const search = useSearchParams();
   const next = search.get('next') || '';
-  // Strip leading slash + only keep paths starting with / for safety.
   const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '';
 
   const [email, setEmail] = useState('');
@@ -19,8 +18,6 @@ export default function SignupForm() {
 
   const finalNext = registerProvider ? '/provider/onboarding' : (safeNext || '/onboarding/location');
 
-  // Where to send the user after Supabase verifies the magic link (email flow).
-  // We pass `?next=` through so the destination is preserved through verification.
   const emailRedirect = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?next=${
     encodeURIComponent(finalNext)
   }`;
@@ -43,9 +40,6 @@ export default function SignupForm() {
       return;
     }
 
-    // If email confirmation is OFF (recommended for hackathon), Supabase returns
-    // a session immediately — the user is now signed in.
-    // If it's ON, no session is returned and the user must verify via email.
     if (data.session) {
       setPending(false);
       router.push(finalNext);
@@ -53,7 +47,6 @@ export default function SignupForm() {
       return;
     }
 
-    // No session — email verification required.
     setPending(false);
     toast.success('Check your email to verify your account.');
     router.push(`/auth/signin?verified=pending${finalNext ? `&next=${encodeURIComponent(finalNext)}` : ''}`);
@@ -62,39 +55,42 @@ export default function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {safeNext === '/provider/onboarding' ? (
-        <div className="rounded-md border border-purple-200 bg-purple-50 dark:bg-purple-950/10 p-3 text-xs">
-          <p className="font-medium">Listing your business?</p>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 text-xs">
+          <p className="font-semibold text-foreground">Listing your business?</p>
           <p className="text-muted-foreground mt-0.5">
             We&apos;ll create your account and take you to provider onboarding next.
           </p>
         </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-md border border-purple-100 bg-purple-50/50 dark:bg-purple-950/5 dark:border-purple-900/30 p-3 text-xs">
+        <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3.5 cursor-pointer hover:bg-accent transition-colors">
           <input
             type="checkbox"
             id="registerProvider"
             checked={registerProvider}
             onChange={(e) => setRegisterProvider(e.target.checked)}
-            className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+            className="rounded border-input text-primary focus:ring-primary h-4 w-4 shrink-0"
           />
-          <label htmlFor="registerProvider" className="font-medium cursor-pointer text-foreground">
-            I want to list my business (Service Provider)
-          </label>
-        </div>
+          <div>
+            <p className="text-xs font-semibold text-foreground">I want to list my business</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Sign up as a service provider</p>
+          </div>
+        </label>
       )}
+
       <div>
-        <label className="block text-sm font-medium mb-1.5">Email</label>
+        <label className="block text-sm font-semibold text-foreground mb-1.5">Email</label>
         <input
           type="email"
           required
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="you@example.com"
+          className="input-field"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1.5">Password</label>
+        <label className="block text-sm font-semibold text-foreground mb-1.5">Password</label>
         <input
           type="password"
           required
@@ -102,27 +98,28 @@ export default function SignupForm() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="Min. 8 characters"
+          className="input-field"
         />
-        <p className="text-xs text-muted-foreground mt-1">At least 8 characters.</p>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1.5">Confirm password</label>
+        <label className="block text-sm font-semibold text-foreground mb-1.5">Confirm password</label>
         <input
           type="password"
           required
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="••••••••"
+          className="input-field"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 font-medium disabled:opacity-50"
+        className="btn-primary w-full !py-2.5 !text-sm mt-1"
       >
-        {pending ? 'Creating…' : 'Create account'}
+        {pending ? 'Creating account…' : 'Create account'}
       </button>
     </form>
   );

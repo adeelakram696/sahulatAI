@@ -74,67 +74,88 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
     <form onSubmit={save} className="space-y-6">
       <Field label="Business name">
         <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          placeholder="e.g. Hassan AC Services"
+          className="input-field" />
       </Field>
 
       <Field label="Phone">
         <input value={phone} onChange={(e) => setPhone(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        <p className="text-xs text-muted-foreground mt-1">
-          {initial.phone_verified ? '✓ Verified (mock OTP)' : 'Not verified yet'}
+          placeholder="+92 300 0000000"
+          className="input-field" />
+        <p className="text-xs text-muted-foreground mt-1.5">
+          {initial.phone_verified ? '✓ Verified' : 'Not verified yet'}
         </p>
       </Field>
 
-      <Field label="Categories">
+      <Field label="Service categories">
         <div className="flex flex-wrap gap-2">
           {ALL_CATEGORIES.map((c) => (
             <button key={c} type="button" onClick={() => toggle(c)}
-              className={`rounded-full border px-3 py-1.5 text-xs ${
-                cats.includes(c) ? 'border-primary bg-primary/10' : 'border-border'
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all capitalize ${
+                cats.includes(c)
+                  ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
               }`}>
-              {c.replace('_', ' ')}
+              {c.replace(/_/g, ' ')}
             </button>
           ))}
         </div>
       </Field>
 
-      <Field label={`Service radius: ${radiusKm} km`}>
-        <input type="range" min={1} max={25} value={radiusKm}
-          onChange={(e) => setRadiusKm(parseInt(e.target.value, 10))} className="w-full" />
+      <Field label={`Service radius — ${radiusKm} km`}>
+        <div className="flex items-center gap-3">
+          <input type="range" min={1} max={25} value={radiusKm}
+            onChange={(e) => setRadiusKm(parseInt(e.target.value, 10))}
+            className="flex-1 accent-primary" />
+          <span className="text-sm font-semibold text-foreground w-12 text-right">{radiusKm} km</span>
+        </div>
       </Field>
 
       <Field label="Notifications">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={whatsappOptIn} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
-          Receive invitations on WhatsApp
-        </label>
-        <label className="flex items-center gap-2 text-sm mt-2">
-          <input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)} />
-          Also send by SMS
-        </label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 cursor-pointer hover:bg-accent transition-colors">
+            <input type="checkbox" checked={whatsappOptIn} onChange={(e) => setWhatsappOptIn(e.target.checked)}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Receive invitations on WhatsApp</p>
+              <p className="text-[11px] text-muted-foreground">Customers will reach you via WhatsApp message</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 cursor-pointer hover:bg-accent transition-colors">
+            <input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Also send by SMS</p>
+              <p className="text-[11px] text-muted-foreground">Fallback if WhatsApp isn&apos;t available</p>
+            </div>
+          </label>
+        </div>
       </Field>
 
-      <Field label="Certifications (comma-separated)" hint="e.g. Gas Safe, EPA 608, NEC Wiring. Boosts your ranking for complex jobs.">
+      <Field label="Certifications" hint="e.g. Gas Safe, EPA 608, NEC Wiring — boosts your ranking for complex jobs.">
         <input value={certifications} onChange={(e) => setCertifications(e.target.value)}
-          placeholder="Gas Safe, EPA 608"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          placeholder="Gas Safe, EPA 608, PEMRA"
+          className="input-field" />
       </Field>
 
-      <Field label="Specialist tools (comma-separated)" hint="Tools you carry — shown to customers and used for job-complexity matching.">
+      <Field label="Specialist tools" hint="Tools you carry — used for job-complexity matching and shown to customers.">
         <input value={toolsRequired} onChange={(e) => setToolsRequired(e.target.value)}
           placeholder="vacuum pump, multimeter, pipe cutter"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          className="input-field" />
       </Field>
 
-      <Field label="Status">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-          Published (visible to customers in search)
+      <Field label="Profile visibility">
+        <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 cursor-pointer hover:bg-accent transition-colors">
+          <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)}
+            className="h-4 w-4 rounded border-input text-primary focus:ring-primary shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-foreground">Published</p>
+            <p className="text-[11px] text-muted-foreground">Visible to customers searching for services</p>
+          </div>
         </label>
       </Field>
 
-      <button type="submit" disabled={pending}
-        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 font-medium disabled:opacity-50">
+      <button type="submit" disabled={pending} className="btn-primary w-full !py-2.5 !text-sm">
         {pending ? 'Saving…' : 'Save changes'}
       </button>
     </form>
@@ -144,8 +165,8 @@ export default function ProviderSettingsForm({ initial }: { initial: Provider })
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1.5">{label}</label>
-      {hint && <p className="text-xs text-muted-foreground mb-1.5">{hint}</p>}
+      <label className="block text-sm font-semibold text-foreground mb-1.5">{label}</label>
+      {hint && <p className="text-xs text-muted-foreground mb-2">{hint}</p>}
       {children}
     </div>
   );
