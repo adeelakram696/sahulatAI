@@ -1,8 +1,9 @@
-type Size = 'sm' | 'md';
+type Size = 'sm' | 'md' | 'lg';
 
 const SIZES: Record<Size, { wrap: string; icon: string; text: string; gap: string }> = {
-  sm: { wrap: 'size-7 rounded-lg',  icon: 'size-4', text: 'text-[15px]', gap: 'gap-2' },
-  md: { wrap: 'size-9 rounded-xl',  icon: 'size-5', text: 'text-xl',     gap: 'gap-2.5' },
+  sm: { wrap: 'size-7 rounded-lg',   icon: 'size-4', text: 'text-[15px]', gap: 'gap-2' },
+  md: { wrap: 'size-9 rounded-xl',   icon: 'size-5', text: 'text-xl',     gap: 'gap-2.5' },
+  lg: { wrap: 'size-16 rounded-2xl', icon: 'size-8', text: 'text-2xl',    gap: 'gap-3' },
 };
 
 export function BrandIcon({ size = 'sm', className = '' }: { size?: Size; className?: string }) {
