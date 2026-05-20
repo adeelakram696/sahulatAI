@@ -20,7 +20,7 @@ export async function getUserRole(supabase: SupabaseClient, userId: string): Pro
 export async function getOwnedProvider(supabase: SupabaseClient, userId: string) {
   const { data } = await supabase
     .from('providers')
-    .select('id, business_name, slug, photo_url, phone, categories, rating_avg, rating_count, response_time_minutes, published, whatsapp_opt_in, sms_opt_in')
+    .select('id, business_name, slug, photo_url, phone, categories, google_rating, google_rating_count, portal_rating, portal_rating_count, response_time_minutes, published, whatsapp_opt_in, sms_opt_in')
     .eq('owner_user_id', userId)
     .limit(1)
     .maybeSingle();

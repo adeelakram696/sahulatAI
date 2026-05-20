@@ -57,7 +57,7 @@ Two sources blend into a single provider candidate stream:
 
 | Table / source       | Purpose                                                                 |
 |----------------------|-------------------------------------------------------------------------|
-| `providers`          | Self-onboarded, bookable. Has `hub_location` (PostGIS), `service_area`, `categories[]`, `languages[]`, `rating_avg`, `on_time_score`, `cancellation_rate`, `risk_score`, `specializations[]`, `capacity`, `base_visit_fee`, `base_hourly_rate`. |
+| `providers`          | Self-onboarded, bookable. Has `hub_location` (PostGIS), `service_area`, `categories[]`, `languages[]`, `google_rating` + `portal_rating` (Google vs SahuliatAI's own rating), `on_time_score`, `cancellation_rate`, `risk_score`, `specializations[]`, `capacity`, `base_visit_fee`, `base_hourly_rate`. |
 | `providers.source = places_api` | Ghost rows created when we contact a Google Places business that hasn't onboarded yet. Tracks the outreach attempt.       |
 | Google Places (live) | Discovered via `text:` and `nearby:` requests; not persisted unless contacted. |
 | `bookings`           | `status` enum: `query_sent → invitation_sent → confirmed → en_route → arrived → in_progress → completed` plus `cancelled / rejected`. Holds `price_breakdown`, `complexity`, `service_checklist`, `service_photos`, `en_route_at`, `arrived_at`, `completed_at`.            |

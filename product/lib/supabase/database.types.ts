@@ -346,6 +346,8 @@ export type Database = {
           certifications: string[]
           created_at: string
           external_place_id: string | null
+          google_rating: number
+          google_rating_count: number
           hub_location: unknown
           id: string
           languages: string[]
@@ -355,10 +357,10 @@ export type Database = {
           phone: string | null
           phone_verified: boolean
           photo_url: string | null
+          portal_rating: number
+          portal_rating_count: number
           price_band: Json
           published: boolean
-          rating_avg: number
-          rating_count: number
           response_time_minutes: number | null
           risk_score: number
           service_area: unknown
@@ -383,6 +385,8 @@ export type Database = {
           certifications?: string[]
           created_at?: string
           external_place_id?: string | null
+          google_rating?: number
+          google_rating_count?: number
           hub_location?: unknown
           id?: string
           languages?: string[]
@@ -392,10 +396,10 @@ export type Database = {
           phone?: string | null
           phone_verified?: boolean
           photo_url?: string | null
+          portal_rating?: number
+          portal_rating_count?: number
           price_band?: Json
           published?: boolean
-          rating_avg?: number
-          rating_count?: number
           response_time_minutes?: number | null
           risk_score?: number
           service_area?: unknown
@@ -420,6 +424,8 @@ export type Database = {
           certifications?: string[]
           created_at?: string
           external_place_id?: string | null
+          google_rating?: number
+          google_rating_count?: number
           hub_location?: unknown
           id?: string
           languages?: string[]
@@ -429,10 +435,10 @@ export type Database = {
           phone?: string | null
           phone_verified?: boolean
           photo_url?: string | null
+          portal_rating?: number
+          portal_rating_count?: number
           price_band?: Json
           published?: boolean
-          rating_avg?: number
-          rating_count?: number
           response_time_minutes?: number | null
           risk_score?: number
           service_area?: unknown
@@ -477,6 +483,7 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
+          provider_id: string | null
           stars: number
         }
         Insert: {
@@ -484,6 +491,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          provider_id?: string | null
           stars: number
         }
         Update: {
@@ -491,6 +499,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          provider_id?: string | null
           stars?: number
         }
         Relationships: [
@@ -499,6 +508,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: true
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
         ]
@@ -1066,13 +1082,15 @@ export type Database = {
           business_name: string
           categories: string[]
           distance_m: number
+          google_rating: number
+          google_rating_count: number
           hub_lat: number
           hub_lng: number
           id: string
           phone: string
           photo_url: string
-          rating_avg: number
-          rating_count: number
+          portal_rating: number
+          portal_rating_count: number
         }[]
       }
       search_providers_rpc: {
@@ -1092,6 +1110,8 @@ export type Database = {
           cancellation_rate: number
           capacity: number
           distance_m: number
+          google_rating: number
+          google_rating_count: number
           hub_lat: number
           hub_lng: number
           id: string
@@ -1100,9 +1120,9 @@ export type Database = {
           on_time_score: number
           phone: string
           photo_url: string
+          portal_rating: number
+          portal_rating_count: number
           price_band: Json
-          rating_avg: number
-          rating_count: number
           response_time_minutes: number
           risk_score: number
           sms_opt_in: boolean

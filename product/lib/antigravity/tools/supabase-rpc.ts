@@ -35,7 +35,8 @@ export const searchProvidersTool: Tool<typeof SearchInput, typeof SearchOutput> 
     if (error) { ctx.logger.warn('search_providers_rpc error', error); return { candidates: [] }; }
     const candidates = (data || []).map((row: {
       id: string; business_name: string; photo_url: string | null; phone: string | null;
-      languages: string[]; rating_avg: number; rating_count: number; response_time_minutes: number | null;
+      languages: string[]; google_rating: number; google_rating_count: number;
+      portal_rating: number; portal_rating_count: number; response_time_minutes: number | null;
       avg_duration: string; hub_lat: number; hub_lng: number; distance_m: number;
       price_band: Record<string, unknown>; whatsapp_opt_in: boolean; sms_opt_in: boolean; source: string;
       on_time_score?: number; cancellation_rate?: number; last_review_at?: string | null; risk_score?: number;
@@ -46,8 +47,10 @@ export const searchProvidersTool: Tool<typeof SearchInput, typeof SearchOutput> 
       photo_url: row.photo_url,
       phone: row.phone,
       languages: row.languages ?? ['en'],
-      rating_avg: Number(row.rating_avg ?? 0),
-      rating_count: row.rating_count ?? 0,
+      google_rating: Number(row.google_rating ?? 0),
+      google_rating_count: row.google_rating_count ?? 0,
+      portal_rating: Number(row.portal_rating ?? 0),
+      portal_rating_count: row.portal_rating_count ?? 0,
       response_time_minutes: row.response_time_minutes,
       avg_duration_minutes: parseIntervalToMinutes(row.avg_duration),
       hub_lat: row.hub_lat,

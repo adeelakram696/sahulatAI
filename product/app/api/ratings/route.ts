@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   // The booking must exist, belong to this customer, and be completed.
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, customer_user_id')
+    .select('id, status, customer_user_id, provider_id')
     .eq('id', body.booking_id)
     .maybeSingle();
   if (!booking) return Response.json({ error: 'booking_not_found' }, { status: 404 });
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase.from('ratings').insert({
     booking_id: body.booking_id,
+    provider_id: booking.provider_id,
     stars: body.stars,
     comment: body.comment,
   });

@@ -23,7 +23,7 @@ insert into public.service_categories(slug, name_en, name_ur, icon, keywords) va
 on conflict (slug) do nothing;
 
 -- Providers (30 entries across Islamabad sectors with fake data)
-insert into public.providers (business_name, slug, phone, phone_verified, languages, categories, hub_location, service_radius_km, weekly_hours, price_band, rating_avg, rating_count, response_time_minutes, avg_duration, published, source, whatsapp_opt_in)
+insert into public.providers (business_name, slug, phone, phone_verified, languages, categories, hub_location, service_radius_km, weekly_hours, price_band, google_rating, google_rating_count, response_time_minutes, avg_duration, published, source, whatsapp_opt_in)
 values
   -- AC Technicians
   ('Ali AC Services',      'ali-ac-services',     '+92 300 555 0101', true, '{en,ur}',  '{ac_repair}',          st_setsrid(st_makepoint(72.9560, 33.6469), 4326)::geography, 8, '{"mon":["09:00","18:00"],"tue":["09:00","18:00"],"wed":["09:00","18:00"],"thu":["09:00","18:00"],"fri":["09:00","18:00"],"sat":["09:00","16:00"]}'::jsonb, '{"ac_repair":{"min":1500,"max":2500}}'::jsonb, 4.7, 42, 12, '1 hour 30 minutes', true, 'self_onboarded', true),

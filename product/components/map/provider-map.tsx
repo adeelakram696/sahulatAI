@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps';
 import { SERVICE_CATEGORIES, getCategory } from '@/lib/services/categories';
 import { ServiceIcon } from '@/components/ui/service-icon';
+import { RatingBadges } from '@/components/ui/rating-badges';
 import { toast } from 'sonner';
 
 interface Provider {
@@ -11,8 +12,10 @@ interface Provider {
   business_name: string;
   photo_url: string | null;
   phone: string | null;
-  rating_avg: number;
-  rating_count: number;
+  google_rating: number;
+  google_rating_count: number;
+  portal_rating: number;
+  portal_rating_count: number;
   categories: string[];
   hub_lat: number;
   hub_lng: number;
@@ -160,9 +163,15 @@ function ProviderPopover({ provider }: { provider: Provider }) {
       <p className="text-xs text-muted-foreground mt-0.5">
         {(provider.categories ?? []).map((c) => getCategory(c)?.label_en ?? c).join(' · ')}
       </p>
-      <div className="flex items-center gap-2 text-xs mt-1.5">
-        {provider.rating_avg > 0 && <span>★ {provider.rating_avg.toFixed(1)}{provider.rating_count > 0 ? ` (${provider.rating_count})` : ''}</span>}
-        {provider.distance_m !== null && <span className="text-muted-foreground">{(provider.distance_m! / 1000).toFixed(1)} km</span>}
+      <div className="mt-1.5 space-y-1">
+        <RatingBadges
+          portalRating={provider.portal_rating}
+          portalCount={provider.portal_rating_count}
+          googleRating={provider.google_rating}
+        />
+        {provider.distance_m !== null && (
+          <p className="text-xs text-muted-foreground">{(provider.distance_m! / 1000).toFixed(1)} km away</p>
+        )}
       </div>
       {slug && (
         <Link

@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { MapPin, ArrowUp, Plus, RotateCcw, Star, Navigation } from 'lucide-react';
+import { MapPin, ArrowUp, Plus, RotateCcw, Navigation } from 'lucide-react';
 import PlacesContactDialog from '@/components/recommendations/places-contact-dialog';
 import { PriceBreakdownCard, type PriceBreakdown } from '@/components/booking/booking-realtime';
 import { BrandIcon } from '@/components/ui/brand-mark';
+import { RatingBadges } from '@/components/ui/rating-badges';
 
 type Location = { id: string; label: string; address_text: string; city: string | null; town_or_area: string | null };
 
@@ -13,8 +14,10 @@ type Provider = {
   id: string;
   business_name: string;
   distance_m: number;
-  rating_avg: number;
-  rating_count: number;
+  google_rating: number;
+  google_rating_count: number;
+  portal_rating: number;
+  portal_rating_count: number;
   reasoning?: { en: string; ur: string };
   is_bookable: boolean;
   score?: number;
@@ -410,20 +413,16 @@ function ProviderCard({ p, serviceSlug, requestedTimeIso, onBook }: { p: Provide
             )}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5 flex-wrap">
-            <span className="flex items-center gap-1">
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Navigation className="size-3 text-primary/60" />
               {distanceKm} km
             </span>
-            {p.rating_avg > 0 ? (
-              <span className="flex items-center gap-1">
-                <Star className="size-3 text-amber-400 fill-amber-400" />
-                {p.rating_avg.toFixed(1)}
-                {p.rating_count > 0 && <span className="text-muted-foreground/60">({p.rating_count})</span>}
-              </span>
-            ) : (
-              <span className="italic text-muted-foreground/60">No rating yet</span>
-            )}
+            <RatingBadges
+              portalRating={p.portal_rating}
+              portalCount={p.portal_rating_count}
+              googleRating={p.google_rating}
+            />
           </div>
 
           {p.reasoning && (

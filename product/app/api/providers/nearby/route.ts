@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const km = 0.009 * radius; // ~1km per 0.009 deg latitude
     const { data: fallback, error: fbErr } = await admin
       .from('providers')
-      .select('id, business_name, photo_url, phone, rating_avg, rating_count, categories, hub_lat:hub_location, hub_lng:hub_location')
+      .select('id, business_name, photo_url, phone, google_rating, google_rating_count, portal_rating, portal_rating_count, categories')
       .eq('published', true)
       .limit(100);
     if (fbErr) return new Response(fbErr.message, { status: 500 });
@@ -52,8 +52,10 @@ interface ProviderRow {
   business_name: string;
   photo_url: string | null;
   phone: string | null;
-  rating_avg: number | string | null;
-  rating_count: number | null;
+  google_rating: number | string | null;
+  google_rating_count: number | null;
+  portal_rating: number | string | null;
+  portal_rating_count: number | null;
   categories?: string[];
   hub_lat: number;
   hub_lng: number;
@@ -66,8 +68,10 @@ function formatRow(r: ProviderRow) {
     business_name: r.business_name,
     photo_url: r.photo_url,
     phone: r.phone,
-    rating_avg: Number(r.rating_avg ?? 0),
-    rating_count: r.rating_count ?? 0,
+    google_rating: Number(r.google_rating ?? 0),
+    google_rating_count: r.google_rating_count ?? 0,
+    portal_rating: Number(r.portal_rating ?? 0),
+    portal_rating_count: r.portal_rating_count ?? 0,
     categories: r.categories ?? [],
     hub_lat: r.hub_lat,
     hub_lng: r.hub_lng,
