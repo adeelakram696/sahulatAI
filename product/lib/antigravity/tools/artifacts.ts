@@ -75,8 +75,9 @@ export const generateReceiptTool: Tool<typeof ReceiptInput, typeof ReceiptOutput
   input: ReceiptInput, output: ReceiptOutput,
   async run({ booking_id }, ctx) {
     ctx.logger.tool('generate_receipt', { booking_id });
-    // For hackathon: link to the in-app receipt view; PDF render TODO.
-    const url = `${env.NEXT_PUBLIC_APP_URL}/booking/${booking_id}/receipt`;
+    // Link to the in-app booking detail view (shows price breakdown + status).
+    // A dedicated /receipt route + PDF render is a Phase-2 TODO.
+    const url = `${env.NEXT_PUBLIC_APP_URL}/booking/${booking_id}`;
     await admin.from('bookings').update({ receipt_pdf_url: url }).eq('id', booking_id);
     return { url };
   },

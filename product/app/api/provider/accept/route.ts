@@ -5,6 +5,10 @@ import { runWorkflow } from '@/lib/antigravity/runtime';
 
 const Body = z.object({ token: z.string().min(32).max(64) });
 
+// How long an invitation token stays acceptable after it was sent.
+const INVITATION_TTL_MS = 24 * 60 * 60 * 1000;
+const ACCEPTABLE_STATUSES = ['invitation_sent', 'query_sent'];
+
 export async function POST(req: NextRequest) {
   let body: z.infer<typeof Body>;
   try { body = Body.parse(await req.json()); }
@@ -12,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const { data: booking } = await admin
     .from('bookings')
-    .select('id, status, slot_start, customer_user_id, provider_id, agent_run_id, invitation_token, providers(business_name)')
+    .select('id, status, slot_start, customer_user_id, provider_id, agent_run_id, invitation_token, invitation_sent_at, providers(business_name)')
     .eq('invitation_token', body.token)
     .single();
   if (!booking) return new Response('not found', { status: 404 });
@@ -20,8 +24,12 @@ export async function POST(req: NextRequest) {
   if (booking.status === 'confirmed') {
     return Response.json({ status: 'already_confirmed', booking_id: booking.id });
   }
-  if (booking.status !== 'invitation_sent') {
+  if (!ACCEPTABLE_STATUSES.includes(booking.status)) {
     return Response.json({ status: 'invalid_state', current: booking.status }, { status: 409 });
+  }
+  const sentAt = booking.invitation_sent_at ? new Date(booking.invitation_sent_at).getTime() : null;
+  if (sentAt && Date.now() - sentAt > INVITATION_TTL_MS) {
+    return Response.json({ status: 'expired' }, { status: 410 });
   }
 
   await admin

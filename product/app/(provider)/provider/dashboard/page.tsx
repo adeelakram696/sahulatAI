@@ -35,7 +35,7 @@ export default async function ProviderDashboard() {
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('id, status, slot_start, slot_end, service_category, location_text, invitation_sent_at, invitation_token, customer_name_snapshot, customer_phone_snapshot, notes, invitation_channel, service_checklist, evidence_photos')
+    .select('id, status, slot_start, slot_end, service_category, location_text, invitation_sent_at, invitation_token, customer_name_snapshot, customer_phone_snapshot, notes, invitation_channel, service_checklist, evidence_photos, price_estimate, price_breakdown')
     .eq('provider_id', provider.id)
     .order('slot_start', { ascending: true });
 

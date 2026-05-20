@@ -48,15 +48,17 @@ export async function updateSession(request: NextRequest) {
   // Location gate for /chat and /bookings — only matters for non-providers,
   // since providers don't need a customer location to use their dashboard.
   if (user && ONBOARDING_GATED.some((p) => path.startsWith(p))) {
-    const { count, error } = await supabase
-      .from('user_locations')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-    console.log('[mw:loc-gate]', { path, userId: user.id, count, error: error?.message });
-    if ((count ?? 0) === 0) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/onboarding/location';
-      return NextResponse.redirect(url);
+    const role = await detectRole(supabase, user.id);
+    if (role === 'customer') {
+      const { count } = await supabase
+        .from('user_locations')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if ((count ?? 0) === 0) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding/location';
+        return NextResponse.redirect(url);
+      }
     }
   }
 

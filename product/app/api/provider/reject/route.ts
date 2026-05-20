@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     .eq('invitation_token', body.token)
     .single();
   if (!booking) return new Response('not found', { status: 404 });
-  if (booking.status !== 'invitation_sent') {
+  if (!['invitation_sent', 'query_sent'].includes(booking.status)) {
     return Response.json({ status: 'invalid_state', current: booking.status }, { status: 409 });
   }
   await admin.from('bookings').update({ status: 'rejected' }).eq('id', booking.id);

@@ -32,10 +32,26 @@ export async function POST(req: NextRequest) {
   if (error || !booking) return new Response('booking_not_found', { status: 404 });
   if (booking.customer_user_id !== user.id) return new Response('forbidden', { status: 403 });
 
-  // Only allow disputes for terminated jobs (or scheduled in the past)
-  const allowedStatuses = ['confirmed', 'reminded', 'en_route', 'arrived', 'in_progress', 'completed', 'cancelled', 'rejected'];
-  if (!allowedStatuses.includes(booking.status)) {
+  // A dispute is only valid once the job has actually happened: either the
+  // booking reached a terminal state, or its slot time is already in the past
+  // (covers no-shows on a still-"confirmed" booking).
+  const terminalStatuses = ['completed', 'cancelled', 'rejected'];
+  const inProgressStatuses = ['confirmed', 'reminded', 'en_route', 'arrived', 'in_progress'];
+  const slotInPast = new Date(booking.slot_start).getTime() < Date.now();
+  const disputable = terminalStatuses.includes(booking.status)
+    || (slotInPast && inProgressStatuses.includes(booking.status));
+  if (!disputable) {
     return new Response('not_disputable', { status: 400 });
+  }
+
+  // One dispute per booking — block duplicates.
+  const { data: existingDispute } = await admin
+    .from('disputes')
+    .select('id')
+    .eq('booking_id', body.booking_id)
+    .maybeSingle();
+  if (existingDispute) {
+    return Response.json({ error: 'already_disputed', dispute_id: existingDispute.id }, { status: 409 });
   }
 
   // Create the dispute row first

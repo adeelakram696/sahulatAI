@@ -22,7 +22,7 @@ export default async function ProfilePage() {
     supabase.from('user_locations').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('customer_user_id', user.id),
     supabase.from('providers').select('id, business_name').eq('owner_user_id', user.id).maybeSingle(),
-    supabase.from('disputes').select('id', { count: 'exact', head: true }),
+    supabase.from('disputes').select('id', { count: 'exact', head: true }).eq('opened_by', user.id),
   ]);
 
   const displayName = user.email

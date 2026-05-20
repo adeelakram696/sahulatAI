@@ -43,6 +43,22 @@ export default function ProviderOnboarding() {
   const [pending, setPending] = useState(false);
   const [claimMode, setClaimMode] = useState<{ business_name: string; phone: string | null } | null>(null);
 
+  // A user who already owns a provider must not onboard again (would insert a
+  // second providers row) — send them straight to the dashboard.
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: existing } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('owner_user_id', user.id)
+        .maybeSingle();
+      if (existing) router.replace('/provider/dashboard');
+    })();
+  }, [router]);
+
   // If signed in with a ?ref=<place_id>, pre-fill from the ghost provider row
   useEffect(() => {
     if (!refPlaceId) return;

@@ -31,10 +31,12 @@ export async function runBookingPhaseA(input: BookingInput, ctx: AgentContext, s
   const startedAt = new Date().toISOString();
   await ctx.emitTrace({ runId: ctx.runId, agentName: 'booking', stepIndex, startedAt, inputs: input, status: 'running' });
 
-  // Load provider + location (via RPC for proper lat/lng extraction)
-  const [{ data: provider }, { data: locRows, error: locErr }] = await Promise.all([
+  // Load provider + location + customer profile (for the booking snapshot the
+  // provider sees — name/phone must be copied onto the booking row).
+  const [{ data: provider }, { data: locRows, error: locErr }, { data: profile }] = await Promise.all([
     admin.from('providers').select('id, avg_duration, business_name, categories, price_band').eq('id', input.provider_id).single(),
     admin.rpc('get_user_location_geo', { p_id: input.user_location_id }),
+    admin.from('users_profile').select('display_name, phone').eq('user_id', input.user_id).maybeSingle(),
   ]);
   if (locErr) throw new Error(`location lookup failed: ${locErr.message}`);
   const location = locRows?.[0];
@@ -60,6 +62,8 @@ export async function runBookingPhaseA(input: BookingInput, ctx: AgentContext, s
       slot_end: slotEnd.toISOString(),
       location_text: `${(location as { label: string }).label} — ${(location as { address_text: string }).address_text}`,
       location_point: locationPoint,
+      customer_name_snapshot: input.customer_name ?? (profile as { display_name?: string } | null)?.display_name ?? null,
+      customer_phone_snapshot: input.customer_phone ?? (profile as { phone?: string } | null)?.phone ?? null,
       customer_lang: input.customer_lang ?? 'en',
       agent_run_id: ctx.runId,
       notes: input.notes ?? '',
