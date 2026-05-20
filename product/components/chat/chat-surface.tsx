@@ -175,7 +175,7 @@ export default function ChatSurface({
   const selectedLocation = locations.find((l) => l.id === selectedLocId)!;
 
   return (
-    <div className="relative flex flex-col h-[calc(100dvh-57px-60px)] md:h-[calc(100dvh-57px)]">
+    <div className="relative flex flex-col overflow-hidden h-[calc(100dvh_-_57px_-_60px)] md:h-[calc(100dvh_-_57px)]">
       <span
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 size-[640px] rounded-full bg-[radial-gradient(closest-side,hsl(168_84%_30%/0.12),transparent_70%)] blur-3xl -z-10"

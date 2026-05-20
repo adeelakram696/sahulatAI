@@ -90,7 +90,7 @@ export default async function ProviderDashboard() {
     <>
       <ProviderHeader active="dashboard" businessName={provider.business_name} />
 
-      <main className="relative container max-w-4xl py-5 sm:py-6 space-y-4 sm:space-y-5">
+      <main className="relative overflow-hidden container max-w-4xl py-5 sm:py-6 space-y-4 sm:space-y-5">
         {/* Ambient teal radial — same language as auth pages */}
         <span
           aria-hidden

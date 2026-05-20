@@ -30,7 +30,7 @@ export default async function ProviderDisputes() {
   return (
     <>
       <ProviderHeader active="disputes" businessName={providerRow.business_name} />
-      <main className="relative container max-w-4xl py-5 sm:py-6 space-y-4 sm:space-y-5">
+      <main className="relative overflow-hidden container max-w-4xl py-5 sm:py-6 space-y-4 sm:space-y-5">
         <span
           aria-hidden
           className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 size-[640px] rounded-full bg-[radial-gradient(closest-side,hsl(168_84%_30%/0.14),transparent_70%)] blur-3xl -z-10"

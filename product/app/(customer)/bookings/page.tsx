@@ -24,7 +24,7 @@ export default async function BookingsPage() {
   return (
     <>
       <AppHeader active="bookings" />
-      <main className="relative container max-w-3xl py-5 sm:py-8">
+      <main className="relative overflow-hidden container max-w-3xl py-5 sm:py-8">
         <span
           aria-hidden
           className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 size-[640px] rounded-full bg-[radial-gradient(closest-side,hsl(168_84%_30%/0.14),transparent_70%)] blur-3xl -z-10"
