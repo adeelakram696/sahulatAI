@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { RatingBadges } from '@/components/ui/rating-badges';
+import RatingForm from '@/components/booking/rating-form';
 
 export interface PriceBreakdown {
   currency: string;
@@ -36,15 +38,21 @@ interface BookingRow {
   arrived_at?: string | null;
   completed_at?: string | null;
   service_checklist?: { key: string; label: string; done: boolean }[] | null;
-  providers: { business_name: string; phone: string | null; rating_avg: number } | { business_name: string; phone: string | null; rating_avg: number }[] | null;
+  providers: { business_name: string; phone: string | null; google_rating: number; google_rating_count: number; portal_rating: number; portal_rating_count: number } | { business_name: string; phone: string | null; google_rating: number; google_rating_count: number; portal_rating: number; portal_rating_count: number }[] | null;
 }
 
-function getProvider(b: BookingRow): { business_name: string; phone: string | null; rating_avg: number } | null {
+function getProvider(b: BookingRow): { business_name: string; phone: string | null; google_rating: number; google_rating_count: number; portal_rating: number; portal_rating_count: number } | null {
   if (!b.providers) return null;
   return Array.isArray(b.providers) ? (b.providers[0] ?? null) : b.providers;
 }
 
-export default function BookingRealtime({ initial }: { initial: BookingRow }) {
+export default function BookingRealtime({
+  initial,
+  existingRating,
+}: {
+  initial: BookingRow;
+  existingRating?: { stars: number; comment: string | null } | null;
+}) {
   const [booking, setBooking] = useState(initial);
 
   useEffect(() => {
@@ -71,7 +79,7 @@ export default function BookingRealtime({ initial }: { initial: BookingRow }) {
     return <Confirmed booking={booking} provider={prov} slotDate={slotDate} />;
   }
   if (booking.status === 'completed') {
-    return <Completed booking={booking} provider={prov} />;
+    return <Completed booking={booking} provider={prov} existingRating={existingRating} />;
   }
   if (booking.status === 'rejected' || booking.status === 'cancelled') {
     return <Rejected booking={booking} provider={prov} status={booking.status} />;
@@ -185,7 +193,7 @@ function InvitationPending({ booking, provider }: { booking: BookingRow; provide
   );
 }
 
-function Confirmed({ booking, provider, slotDate }: { booking: BookingRow; provider: { business_name: string; phone: string | null; rating_avg: number } | null; slotDate: Date }) {
+function Confirmed({ booking, provider, slotDate }: { booking: BookingRow; provider: { business_name: string; phone: string | null; google_rating: number; google_rating_count: number; portal_rating: number; portal_rating_count: number } | null; slotDate: Date }) {
   const config = {
     confirmed:    { icon: '✓', color: 'emerald', headline: 'Booking confirmed',     sub: `${provider?.business_name} will arrive on ${slotDate.toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}.` },
     reminded:     { icon: '🔔', color: 'sky',     headline: 'Service today',          sub: `${provider?.business_name} is scheduled for ${slotDate.toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}.` },
@@ -243,7 +251,15 @@ function Confirmed({ booking, provider, slotDate }: { booking: BookingRow; provi
   );
 }
 
-function Completed({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null } | null }) {
+function Completed({
+  booking,
+  provider,
+  existingRating,
+}: {
+  booking: BookingRow;
+  provider: { business_name: string; phone: string | null } | null;
+  existingRating?: { stars: number; comment: string | null } | null;
+}) {
   return (
     <main className="container max-w-2xl py-10 space-y-4">
       <div className="card-elevated p-6 border-l-4 border-l-emerald-500">
@@ -277,10 +293,11 @@ function Completed({ booking, provider }: { booking: BookingRow; provider: { bus
           <PriceBreakdownCard breakdown={booking.price_breakdown} complexity={booking.complexity} compact />
         )}
 
-        <div className="mt-4 flex gap-2 flex-wrap">
-          <Link href={`/bookings?rate=${booking.id}`} className="btn-primary !text-xs !py-2 !px-4">
-            Rate experience
-          </Link>
+        <div className="mt-4">
+          <RatingForm bookingId={booking.id} existing={existingRating} />
+        </div>
+
+        <div className="mt-3">
           <Link href={`/bookings/${booking.id}/dispute`} className="btn-ghost !text-xs !py-2 !px-4">
             Report issue
           </Link>
@@ -330,7 +347,7 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SummaryCard({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null; rating_avg: number } | null }) {
+function SummaryCard({ booking, provider }: { booking: BookingRow; provider: { business_name: string; phone: string | null; google_rating: number; google_rating_count: number; portal_rating: number; portal_rating_count: number } | null }) {
   return (
     <div className="mt-5 rounded-xl border border-border bg-muted/30 p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Booking summary</p>
@@ -339,6 +356,18 @@ function SummaryCard({ booking, provider }: { booking: BookingRow; provider: { b
         <dt className="text-muted-foreground">Location</dt><dd className="font-medium">{booking.location_text}</dd>
         <dt className="text-muted-foreground">Time</dt><dd className="font-medium">{new Date(booking.slot_start).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
         <dt className="text-muted-foreground">Provider</dt><dd className="font-medium">{provider?.business_name}</dd>
+        {provider && (provider.portal_rating_count > 0 || provider.google_rating > 0) && (
+          <>
+            <dt className="text-muted-foreground">Rating</dt>
+            <dd>
+              <RatingBadges
+                portalRating={provider.portal_rating}
+                portalCount={provider.portal_rating_count}
+                googleRating={provider.google_rating}
+              />
+            </dd>
+          </>
+        )}
         <dt className="text-muted-foreground">Status</dt><dd className="font-medium text-emerald-600">Confirmed ✓</dd>
         <dt className="text-muted-foreground">Reminder</dt><dd className="font-medium">1 hour before</dd>
       </dl>

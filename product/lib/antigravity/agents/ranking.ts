@@ -88,9 +88,13 @@ export async function runRanking(input: RankingInput, ctx: AgentContext, stepInd
     // Factor 1: distance — 25 points max, decreasing linearly to 0 at 15 km
     const fDistance = Math.round(Math.max(0, 25 * (1 - Math.min(distKm, 15) / 15)) * 10) / 10;
 
-    // Factor 2: rating × recency — 20 points max
+    // Factor 2: rating × recency — 20 points max.
+    // Prefer SahuliatAI's own portal rating; fall back to the Google rating
+    // when the provider has no portal ratings yet.
     const recencyDecay = decayForDays(daysSince(c.last_review_at));
-    const ratingScore = c.rating_count === 0 ? 0.625 : c.rating_avg / 5; // 0..1
+    const effRating = c.portal_rating_count > 0 ? c.portal_rating : c.google_rating;
+    const effCount = c.portal_rating_count > 0 ? c.portal_rating_count : c.google_rating_count;
+    const ratingScore = effCount === 0 ? 0.625 : effRating / 5; // 0..1
     const fRatingRecency = Math.round(20 * ratingScore * recencyDecay * 10) / 10;
 
     // Factor 3: on-time score — 15 points max
@@ -208,16 +212,19 @@ function buildReasoning(
 ): { en: string; ur: string } {
   if (c.source !== 'self_onboarded') {
     // Google Places: only show real Google rating — no synthetic on-time/cancel/availability
-    const ratingPart = c.rating_avg > 0 ? `★${c.rating_avg.toFixed(1)}` : 'No rating';
+    const ratingPart = c.google_rating > 0 ? `★${c.google_rating.toFixed(1)} on Google` : 'No rating';
     return {
       en: `${ratingPart} · Listed on Google · contact to confirm availability`,
       ur: `${ratingPart} · گوگل پر درج`,
     };
   }
-  // Self-onboarded: real stats only; distance is already shown in the UI card
-  const ratingPart = c.rating_count > 0
-    ? `★${c.rating_avg.toFixed(1)} (${c.rating_count} ${c.rating_count === 1 ? 'review' : 'reviews'})`
-    : 'No reviews yet';
+  // Self-onboarded: real stats only; distance is already shown in the UI card.
+  // Prefer the SahuliatAI portal rating; fall back to Google.
+  const ratingPart = c.portal_rating_count > 0
+    ? `★${c.portal_rating.toFixed(1)} (${c.portal_rating_count} SahuliatAI ${c.portal_rating_count === 1 ? 'review' : 'reviews'})`
+    : c.google_rating > 0
+      ? `★${c.google_rating.toFixed(1)} on Google`
+      : 'No reviews yet';
   const availPart = available ? 'available now' : `next slot ${nextAvailable ?? 'soon'}`;
   return {
     en: `${ratingPart} · on-time ${(c.on_time_score * 100).toFixed(0)}% · cancel ${(c.cancellation_rate * 100).toFixed(0)}% · ${availPart}`,

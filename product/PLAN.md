@@ -112,6 +112,24 @@
 
 ---
 
+### P2 — Medium impact
+
+#### 9. Portal-native provider ratings (SahuliatAI rating + Google rating)
+**Requirement**: After a service is completed, the customer rates the provider — 5 stars + optional comment. The provider then carries TWO ratings: SahuliatAI's own portal rating and the Google Places rating. The UI shows both wherever a provider is surfaced.
+
+| Step | Status |
+|---|---|
+| Split rating columns on `providers` — `google_rating`/`google_rating_count` (renamed from `rating_avg`/`rating_count`) + new `portal_rating`/`portal_rating_count` | ✅ |
+| `ratings` table gets `provider_id` (denormalised); `recompute_provider_rating` trigger now updates the **portal** rating | ✅ |
+| `ratings` SELECT RLS policy so both booking parties can read ratings | ✅ |
+| `search_providers_rpc` + `providers_in_bbox` return both ratings | ✅ |
+| Ranking agent prefers the portal rating, falls back to Google when no portal reviews exist | ✅ |
+| Rating form — 5-star selector + optional comment on a completed booking → `POST /api/ratings` | ✅ |
+| `RatingBadges` component — shows "SahuliatAI ★" + "Google ★" on provider cards, map, booking detail | ✅ |
+| `/api/ratings` — `GET`, completed-booking guard, `409` on duplicate, stores `provider_id` | ✅ |
+
+---
+
 ### P3 — Nice to have / robustness
 
 #### 8. Maps/API failure explicit fallback
@@ -137,3 +155,4 @@
 | 2026-05-19 | P1.4 Service-quality checklist + photo evidence — migration, storage, API routes, provider dashboard UI |
 | 2026-05-19 | P2.5 Provider insights dashboard — API route + earnings/utilization/best-slots UI |
 | 2026-05-19 | P2.6 Complexity → provider tier — certifications/tools migration, ranking update, settings UI |
+| 2026-05-20 | P2.9 Portal-native ratings — `providers` rating columns split into `google_rating` + `portal_rating`; `ratings` table gains `provider_id`; trigger now feeds the portal rating; rating form on completed bookings; `RatingBadges` shows both ratings across chat / map / booking detail |

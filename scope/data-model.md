@@ -27,8 +27,10 @@ Self-onboarded businesses.
 | `weekly_hours` | `jsonb` | `{ mon: ["09:00","18:00"], ... }` |
 | `blackout_dates` | `date[]` | |
 | `price_band` | `jsonb` | `{ ac_repair: { min: 1500, max: 2500 } }` |
-| `rating_avg` | `numeric` | denormalized |
-| `rating_count` | `int` | |
+| `google_rating` | `numeric` | rating sourced from Google Places |
+| `google_rating_count` | `int` | Google review count |
+| `portal_rating` | `numeric` | SahuliatAI's own rating — avg of `ratings` (denormalized, trigger-maintained) |
+| `portal_rating_count` | `int` | number of SahuliatAI customer ratings |
 | `response_time_minutes` | `int` | rolling avg |
 | `phone_verified` | `bool` | phone OTP done (only required if opted into WhatsApp/SMS) |
 | `whatsapp_opt_in` | `bool` | provider receives invitations on WhatsApp |
@@ -145,15 +147,19 @@ Queue of scheduled follow-ups. Drained by **Supabase `pg_cron`** every minute (f
 
 ### `ratings`
 
-| Column | Type |
-|---|---|
-| `id` | `uuid pk` |
-| `booking_id` | `uuid unique` |
-| `stars` | `int 1..5` |
-| `comment` | `text` |
-| `created_at` | `timestamptz` |
+SahuliatAI's own (portal) provider ratings — one per completed booking, submitted by the customer.
 
-Trigger: on insert → recompute `providers.rating_avg`, `providers.rating_count`.
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid pk` | |
+| `booking_id` | `uuid unique` | one rating per booking |
+| `provider_id` | `uuid` | denormalized from the booking, for clean aggregation |
+| `stars` | `int 1..5` | |
+| `comment` | `text` | optional free-text feedback |
+| `created_at` | `timestamptz` | |
+
+RLS: a customer may insert/read ratings for their own bookings; the provider on the booking may read them.
+Trigger: on insert → recompute `providers.portal_rating` + `providers.portal_rating_count` (the SahuliatAI rating — distinct from the Google rating).
 
 ---
 

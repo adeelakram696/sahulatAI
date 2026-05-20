@@ -23,7 +23,7 @@ export default async function ProviderDashboard() {
 
   const { data: providers } = await supabase
     .from('providers')
-    .select('id, business_name, photo_url, phone, categories, rating_avg, rating_count, response_time_minutes, whatsapp_opt_in, sms_opt_in, published')
+    .select('id, business_name, photo_url, phone, categories, google_rating, google_rating_count, portal_rating, portal_rating_count, response_time_minutes, whatsapp_opt_in, sms_opt_in, published')
     .eq('owner_user_id', user.id)
     .limit(1);
 
@@ -183,9 +183,21 @@ export default async function ProviderDashboard() {
         {/* KPIs */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           <Kpi
-            label="Rating"
-            value={provider.rating_avg > 0 ? Number(provider.rating_avg).toFixed(1) : '—'}
-            sub={`${provider.rating_count ?? 0} reviews`}
+            label="SahuliatAI rating"
+            value={
+              provider.portal_rating_count > 0
+                ? Number(provider.portal_rating).toFixed(1)
+                : provider.google_rating > 0
+                  ? Number(provider.google_rating).toFixed(1)
+                  : '—'
+            }
+            sub={
+              provider.portal_rating_count > 0
+                ? `${provider.portal_rating_count} review${provider.portal_rating_count === 1 ? '' : 's'}`
+                : provider.google_rating > 0
+                  ? 'Google rating · no SahuliatAI reviews yet'
+                  : 'no reviews yet'
+            }
             Icon={Star}
             tint="amber"
           />
