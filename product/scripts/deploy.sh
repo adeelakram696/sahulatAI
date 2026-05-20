@@ -153,7 +153,7 @@ fi
 
 if [ ! -d .vercel ]; then
   echo "-> Linking this directory to a Vercel project ..."
-  pnpm exec vercel "${VERCEL_ARGS[@]}" link
+  pnpm exec vercel "${VERCEL_ARGS[@]}" link --yes
 fi
 
 VENV="preview"
