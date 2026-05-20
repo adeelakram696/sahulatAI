@@ -355,7 +355,7 @@ function ThinkingBubble() {
 }
 
 function ArtifactView({ artifact, onChipSelect }: { artifact: Artifact; onChipSelect?: (s: string) => void }) {
-  if (artifact.type === 'providers') return <ProvidersArtifact a={artifact} />;
+  if (artifact.type === 'providers') return <ProvidersArtifact a={artifact} onBook={onChipSelect} />;
   if (artifact.type === 'booking_confirmation') return <BookingConfirmedArtifact a={artifact} />;
   if (artifact.type === 'places_contact_sent') return <PlacesContactSentArtifact a={artifact} />;
   if (artifact.type === 'clarification') return <ClarificationArtifact a={artifact} onSelect={onChipSelect} />;
@@ -363,7 +363,7 @@ function ArtifactView({ artifact, onChipSelect }: { artifact: Artifact; onChipSe
   return null;
 }
 
-function ProvidersArtifact({ a }: { a: Extract<Artifact, { type: 'providers' }> }) {
+function ProvidersArtifact({ a, onBook }: { a: Extract<Artifact, { type: 'providers' }>; onBook?: (msg: string) => void }) {
   return (
     <div className="space-y-3">
       {a.bookable.length > 0 && (
@@ -371,7 +371,7 @@ function ProvidersArtifact({ a }: { a: Extract<Artifact, { type: 'providers' }> 
           <p className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
             Bookable through SahuliatAI
           </p>
-          {a.bookable.map((p) => <ProviderCard key={p.id} p={p} serviceSlug={a.service_slug} requestedTimeIso={a.requested_time_iso} />)}
+          {a.bookable.map((p) => <ProviderCard key={p.id} p={p} serviceSlug={a.service_slug} requestedTimeIso={a.requested_time_iso} onBook={onBook} />)}
         </div>
       )}
       {a.also_nearby.length > 0 && (
@@ -379,14 +379,14 @@ function ProvidersArtifact({ a }: { a: Extract<Artifact, { type: 'providers' }> 
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Also nearby · via Google
           </p>
-          {a.also_nearby.map((p) => <ProviderCard key={p.id} p={p} serviceSlug={a.service_slug} requestedTimeIso={a.requested_time_iso} />)}
+          {a.also_nearby.map((p) => <ProviderCard key={p.id} p={p} serviceSlug={a.service_slug} requestedTimeIso={a.requested_time_iso} onBook={onBook} />)}
         </div>
       )}
     </div>
   );
 }
 
-function ProviderCard({ p, serviceSlug, requestedTimeIso }: { p: Provider; serviceSlug: string; requestedTimeIso: string | null }) {
+function ProviderCard({ p, serviceSlug, requestedTimeIso, onBook }: { p: Provider; serviceSlug: string; requestedTimeIso: string | null; onBook?: (msg: string) => void }) {
   const [contactOpen, setContactOpen] = useState(false);
   const distanceKm = (p.distance_m / 1000).toFixed(1);
   const isFromGoogle = p.source === 'places_api';
@@ -431,12 +431,19 @@ function ProviderCard({ p, serviceSlug, requestedTimeIso }: { p: Provider; servi
           )}
         </div>
 
-        {isFromGoogle && (
+        {isFromGoogle ? (
           <button
             onClick={() => setContactOpen(true)}
             className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent hover:border-primary/30 transition-all"
           >
             Contact
+          </button>
+        ) : (
+          <button
+            onClick={() => onBook?.(`Book ${p.business_name}${requestedTimeIso ? ` at ${requestedTime}` : ''}`)}
+            className="shrink-0 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+          >
+            Book
           </button>
         )}
       </div>
@@ -456,11 +463,6 @@ function ProviderCard({ p, serviceSlug, requestedTimeIso }: { p: Provider; servi
         </div>
       )}
 
-      {!isFromGoogle && (
-        <p className="text-[11px] text-muted-foreground/70 mt-2 pt-2 border-t border-border/60 italic">
-          Say &ldquo;book this&rdquo; or &ldquo;{p.business_name.split(' ')[0]} wale ko kal subah&rdquo; to confirm
-        </p>
-      )}
 
       {isFromGoogle && (
         <PlacesContactDialog

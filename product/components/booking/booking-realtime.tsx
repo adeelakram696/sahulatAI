@@ -386,9 +386,17 @@ function ServiceTimeline({ booking }: { booking: BookingRow }) {
   );
 }
 
-export function PriceBreakdownCard({ breakdown, complexity, compact }: { breakdown: PriceBreakdown; complexity?: string | null; compact?: boolean }) {
+export function PriceBreakdownCard({ breakdown: raw, complexity, compact }: { breakdown: PriceBreakdown; complexity?: string | null; compact?: boolean }) {
+  // Normalize old field names stored in DB before the naming fix
+  const breakdown: PriceBreakdown = {
+    ...raw,
+    visit_fee:     raw.visit_fee     ?? (raw as unknown as Record<string, number>).base_visit_fee ?? 0,
+    labor_cost:    raw.labor_cost    ?? (raw as unknown as Record<string, number>).hourly_cost     ?? 0,
+    base_subtotal: raw.base_subtotal ?? (raw as unknown as Record<string, number>).subtotal        ?? 0,
+    adjustments_total: raw.adjustments_total ?? (raw as unknown as Record<string, number>).adjustments_amount ?? 0,
+  };
   const cur = breakdown.currency || 'PKR';
-  const fmt = (n: number) => `${cur} ${Math.round(n).toLocaleString('en-IN')}`;
+  const fmt = (n: number) => `${cur} ${Math.round(n ?? 0).toLocaleString('en-IN')}`;
   const adjRows = [
     breakdown.urgency_pct !== 0 && { label: 'Urgency', pct: breakdown.urgency_pct },
     breakdown.complexity_pct !== 0 && { label: 'Complexity', pct: breakdown.complexity_pct },

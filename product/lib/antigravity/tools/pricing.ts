@@ -25,19 +25,19 @@ const Input = z.object({
 });
 
 const Output = z.object({
-  base_visit_fee: z.number(),
+  visit_fee: z.number(),
   hourly_rate: z.number(),
   hours_estimate: z.number(),
-  hourly_cost: z.number(),
+  labor_cost: z.number(),
   distance_km: z.number(),
   distance_cost: z.number(),
-  subtotal: z.number(),
+  base_subtotal: z.number(),
   urgency_pct: z.number(),
   complexity_pct: z.number(),
   surge_pct: z.number(),
   loyalty_pct: z.number(),
   adjustments_total_pct: z.number(),
-  adjustments_amount: z.number(),
+  adjustments_total: z.number(),
   total: z.number(),
   currency: z.literal('PKR'),
   explanation: z.object({ en: z.string(), ur: z.string() }),
@@ -59,18 +59,18 @@ export const computePriceTool: Tool<typeof Input, typeof Output> = {
       .maybeSingle();
     if (!provider) throw new Error('provider not found');
 
-    const baseVisitFee = Number(provider.base_visit_fee ?? 500);
+    const visitFee = Number(provider.base_visit_fee ?? 500);
     const hourlyRate = Number(provider.base_hourly_rate ?? 800);
 
     // Hours estimate based on complexity
     const hoursEstimate = args.complexity === 'complex' ? 2.5 : args.complexity === 'intermediate' ? 1.5 : 1.0;
-    const hourlyCost = Math.round(hourlyRate * hoursEstimate);
+    const laborCost = Math.round(hourlyRate * hoursEstimate);
 
     // Distance — parse PostGIS Point WKB from server-side haversine.
     const distanceKm = await distanceFromProvider(provider.id, args.user_point);
     const distanceCost = Math.max(0, Math.round((distanceKm - 3) * 50)); // first 3 km free
 
-    const subtotal = baseVisitFee + hourlyCost + distanceCost;
+    const baseSubtotal = visitFee + laborCost + distanceCost;
 
     // Adjustments
     const urgencyPct = { now: 25, today: 15, tomorrow: 0, this_week: -5 }[args.urgency];
@@ -79,32 +79,32 @@ export const computePriceTool: Tool<typeof Input, typeof Output> = {
     const loyaltyPct = await computeLoyaltyDiscount(args.customer_user_id);
 
     const adjustmentsTotalPct = urgencyPct + complexityPct + surgePct + loyaltyPct;
-    const adjustmentsAmount = Math.round(subtotal * adjustmentsTotalPct / 100);
-    const total = Math.max(0, subtotal + adjustmentsAmount);
+    const adjustmentsTotal = Math.round(baseSubtotal * adjustmentsTotalPct / 100);
+    const total = Math.max(0, baseSubtotal + adjustmentsTotal);
 
     const explanation = buildExplanation({
       providerName: provider.business_name,
-      baseVisitFee, hourlyRate, hoursEstimate, hourlyCost,
+      visitFee, hourlyRate, hoursEstimate, laborCost,
       distanceKm, distanceCost,
-      subtotal,
+      baseSubtotal,
       urgencyPct, complexityPct, surgePct, loyaltyPct,
       total,
     });
 
     return {
-      base_visit_fee: baseVisitFee,
+      visit_fee: visitFee,
       hourly_rate: hourlyRate,
       hours_estimate: hoursEstimate,
-      hourly_cost: hourlyCost,
+      labor_cost: laborCost,
       distance_km: Math.round(distanceKm * 10) / 10,
       distance_cost: distanceCost,
-      subtotal,
+      base_subtotal: baseSubtotal,
       urgency_pct: urgencyPct,
       complexity_pct: complexityPct,
       surge_pct: surgePct,
       loyalty_pct: loyaltyPct,
       adjustments_total_pct: adjustmentsTotalPct,
-      adjustments_amount: adjustmentsAmount,
+      adjustments_total: adjustmentsTotal,
       total,
       currency: 'PKR' as const,
       explanation,
@@ -158,9 +158,9 @@ function fmt(n: number) {
 
 function buildExplanation(p: {
   providerName: string;
-  baseVisitFee: number; hourlyRate: number; hoursEstimate: number; hourlyCost: number;
+  visitFee: number; hourlyRate: number; hoursEstimate: number; laborCost: number;
   distanceKm: number; distanceCost: number;
-  subtotal: number;
+  baseSubtotal: number;
   urgencyPct: number; complexityPct: number; surgePct: number; loyaltyPct: number;
   total: number;
 }): { en: string; ur: string } {
@@ -172,10 +172,10 @@ function buildExplanation(p: {
   const adjustments = adjLines.length > 0 ? ` (${adjLines.join(', ')})` : '';
 
   const en =
-    `Base PKR ${fmt(p.baseVisitFee)} + ${p.hoursEstimate}h × PKR ${fmt(p.hourlyRate)} (= PKR ${fmt(p.hourlyCost)}) + distance PKR ${fmt(p.distanceCost)} → subtotal PKR ${fmt(p.subtotal)}${adjustments} → total PKR ${fmt(p.total)}`;
+    `Base PKR ${fmt(p.visitFee)} + ${p.hoursEstimate}h × PKR ${fmt(p.hourlyRate)} (= PKR ${fmt(p.laborCost)}) + distance PKR ${fmt(p.distanceCost)} → subtotal PKR ${fmt(p.baseSubtotal)}${adjustments} → total PKR ${fmt(p.total)}`;
 
   const ur =
-    `بنیادی PKR ${fmt(p.baseVisitFee)} + ${p.hoursEstimate} گھنٹے × PKR ${fmt(p.hourlyRate)} (PKR ${fmt(p.hourlyCost)}) + فاصلہ PKR ${fmt(p.distanceCost)} → ذیلی کل PKR ${fmt(p.subtotal)}${adjustments} → کل PKR ${fmt(p.total)}`;
+    `بنیادی PKR ${fmt(p.visitFee)} + ${p.hoursEstimate} گھنٹے × PKR ${fmt(p.hourlyRate)} (PKR ${fmt(p.laborCost)}) + فاصلہ PKR ${fmt(p.distanceCost)} → ذیلی کل PKR ${fmt(p.baseSubtotal)}${adjustments} → کل PKR ${fmt(p.total)}`;
 
   return { en, ur };
 }
